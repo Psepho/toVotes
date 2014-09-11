@@ -13,6 +13,6 @@
 #' }
 #'
 #' @format A data frame with 16899 rows and 5 variables
-#' @source \url{http://www1.toronto.ca/wps/portal/contentonly?vgnextoid=834689fe9c18b210VgnVCM1000003dd60f89RCRD&vgnextchannel&%2361;0186e03bb8d1e310VgnVCM10000071d60f89RCRD}
+#' @source \url{http://www1.toronto.ca/wps/portal/contentonly?vgnextoid=834689fe9c18b210VgnVCM1000003dd60f89RCRD}
 #' @name toVotes
 NULL
