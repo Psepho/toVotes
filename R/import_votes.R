@@ -27,6 +27,7 @@ importElectionWorksheets <- function(filename) {
                ifelse(fyear=="2003",strsplit(.sheet, ' Ward ')[[1]][[2]],strsplit(.sheet, ' Ward ')[[1]][[1]]))
   })
   results <- do.call("rbind", sheet_list) # Collect the dataframes for each worksheet from the file into a single dataframe
+  names(results) <- c("year", "candidate", "area", "votes", "type", "ward") # Clean up the names
   results <- subset(results, area!="Total") # Drop the total column
   results <- subset(results, !grepl("Totals", candidate)) # Drop the total rows
   results$candidate <- gsub(",","",tolower(election_results$candidate))
