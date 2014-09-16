@@ -8,7 +8,7 @@
 }
 \description{
 Cleaned and packaged poll by poll results from the 2003, 2006, and
-2010 mayoral elections in Toronto. The variables are as follows:
+2010 mayoral elections in Toronto.
 }
 \details{
 \itemize{
