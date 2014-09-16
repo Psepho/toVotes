@@ -22,11 +22,13 @@ The dataframe contains the:
 
 The package also contains a helper function `importElectionWorksheets` which was used to convert the source Excel files into dataframes. For example, importing the 2010 election results could proceed as:
 
-    processFiles <- function(pattern) { # Takes a filename pattern and returns a dataframe
-      lfiles <- list.files(pattern = fpattern) # Find all files that match the pattern
-      results <- do.call("rbind", lapply(lfiles, importWorksheets)) # Collapse all down to a single dataframe
-      row.names(results) <- NULL # Clear the rownames
-    }
-    fyear <- "2010"
-    fpattern <- paste(fyear,".*_Mayor.xls?",sep="") # Import several files at once
-    election_results <- processFiles(fpattern)
+```{r}
+processFiles <- function(pattern) { # Takes a filename pattern and returns a dataframe
+  lfiles <- list.files(pattern = fpattern) # Find all files that match the pattern
+  results <- do.call("rbind", lapply(lfiles, importWorksheets)) # Collapse all down to a single dataframe
+  row.names(results) <- NULL # Clear the rownames
+  }
+fyear <- "2010"
+fpattern <- paste(fyear,".*_Mayor.xls?",sep="") # Import several files at once
+election_results <- processFiles(fpattern)
+```
