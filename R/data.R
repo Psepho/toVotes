@@ -1,7 +1,7 @@
 #' Data from the mayoral elections in Toronto.
 #'
 #' Cleaned and packaged poll by poll results from the 2003, 2006, and
-#' 2010 mayoral elections in Toronto. The variables are as follows:
+#' 2010 mayoral elections in Toronto.
 #'
 #' \itemize{
 #'   \item year. The year of the election as a factor
