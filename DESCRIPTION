@@ -11,8 +11,11 @@ Depends:
 License: file LICENSE
 LazyData: true
 Suggests:
-    dplyr (>=0.2),
+    dplyr (>= 0.2),
+    ggmap (>= 2.3),
+    maptools (>= 1.2),
     reshape2 (>= 1.4),
+    stringr (>= 0.6),
     XLConnect (>= 0.2)
 URL: http://psephoanalytics.blogspot.ca/
 BugReports: https://github.com/mroutley/toVotes/issues
