@@ -1,6 +1,5 @@
 geocodePolls <- function() {
   # Download shapefiles -----------------------------------------------------
-
   years <- c(2006,2010)
   for (year in years) {
     if(file.exists(paste("subdivisions_",year,".zip",sep=""))) {
@@ -8,17 +7,15 @@ geocodePolls <- function() {
     }  else {
       download.file(paste("http://opendata.toronto.ca/gcc/voting_subdivision_",year,"_wgs84.zip",sep=""),
                     destfile = paste("subdivisions_",year,".zip",sep=""))
-      unzip(paste("subdivisions_",year,".zip",sep=""), exdir="")
+      unzip(paste("subdivisions_",year,".zip",sep=""), exdir=".")
     }
     shape <- paste("shapefile_",year,sep="")
     file <- paste("VOTING_SUBDIVISION_",year,"_WGS84.shp",sep="")
-    assign(shape,maptools::readShapeSpatial(file, proj4string=CRS("+proj=longlat +datum=WGS84")))
+    assign(shape,maptools::readShapeSpatial(file, proj4string=sp::CRS("+proj=longlat +datum=WGS84")))
     rm(file,shape)
   }
   rm(year,years)
-
   # Shapefiles --------------------------------------------------------------
-
   # Extract the data object for each year and then combine into one data frame
   geo_2010 <- ggplot2::fortify(shapefile_2010,region="AREA_NAME")
   geo_2010$year <- as.integer(2010)
@@ -37,6 +34,5 @@ geocodePolls <- function() {
   toPollGeo$year <- as.factor(toPollGeo$year)
   rm(geo_2014, geo_2003, geo_2006, geo_2010)
   toPollGeo <- dplyr::inner_join(toPollGeo,toVotes::ward_regions, by=c("ward"))
-  rm(ward_regions)
   toPollGeo
 }
