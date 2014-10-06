@@ -36,8 +36,7 @@ geocodePolls <- function() {
   toPollGeo <- rbind(toPollGeo, geo_2014)
   toPollGeo$year <- as.factor(toPollGeo$year)
   rm(geo_2014, geo_2003, geo_2006, geo_2010)
-  ward_regions <- read.csv("data/ward_regions.csv")
-  toPollGeo <- dplyr::inner_join(toPollGeo,ward_regions, by=c("ward"))
+  toPollGeo <- dplyr::inner_join(toPollGeo,toVotes::ward_regions, by=c("ward"))
   rm(ward_regions)
   toPollGeo
 }
