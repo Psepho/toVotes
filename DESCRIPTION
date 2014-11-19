@@ -1,11 +1,11 @@
 Package: toVotes
 Title: Data from the mayoral elections in Toronto
-Version: 0.1
+Version: 0.2
 Authors@R: as.person(c(
     "Matthew Routley <matt@routleynet.org> [aut, cre]"
     ))
-Description: Cleaned and packaged poll by poll results from the 2003, 2006, and
-    2010 mayoral elections in Toronto.
+Description: Cleaned and packaged poll by poll results from the 2003, 2006, 2010, and
+    2014 mayoral elections in Toronto.
 Depends:
     R (>= 3.1)
 License: file LICENSE
@@ -16,6 +16,7 @@ Suggests:
     maptools (>= 1.2),
     reshape2 (>= 1.4),
     stringr (>= 0.6),
-    XLConnect (>= 0.2)
+    XLConnect (>= 0.2),
+    tidyr (>=0.1)
 URL: http://psephoanalytics.blogspot.ca/
 BugReports: https://github.com/mroutley/toVotes/issues
