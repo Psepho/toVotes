@@ -13,14 +13,14 @@
 #'   ...
 #' }
 #'
-#' @format A data frame with 131754 rows and 6 variables
+#' @format A data frame with 388586 rows and 12 variables
 #' @source \url{http://www1.toronto.ca/wps/portal/contentonly?vgnextoid=834689fe9c18b210VgnVCM1000003dd60f89RCRD}
 #' @name toVotes
 NULL
 #' Geographic data for the polling stations in Toronto municipal elections.
 #'
-#' Geocoded poll locations from the 2003, 2006, and
-#' 2010 municipal elections in Toronto.
+#' Geocoded poll locations from the 2003, 2006,
+#' 2010, and 2014 municipal elections in Toronto.
 #'
 #' \itemize{
 #'   \item long. The longitude of the polling station
