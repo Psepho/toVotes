@@ -3,3 +3,4 @@
 .RData
 *.xls
 ggmapTemp.png
+data-raw/pollresults*
