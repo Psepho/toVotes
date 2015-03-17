@@ -40,3 +40,26 @@ NULL
 #' @format A data frame with 387422 rows and 12 variables
 #' @name toPollGeo
 NULL
+#' Data from the 2011 federal election in Toronto.
+#'
+#' Cleaned and packaged poll by poll results from the 2011 general federal election for electoral districts in Toronto.
+#'
+#' \itemize{
+#'   \item year. The year of the election as a factor
+#'   \item candidate. The name of the candidate as last name first name
+#'   \item votes. The number of votes received
+#'   \item ward. The ward for the polling station
+#'   \item area. The area for the polling station
+#'   \item type. The type of election, currently only Mayor
+#'   \item district. electoral district for the polling station
+#'   \item poll. poll number for the polling station
+#'   \item type. type of election as federal
+#'   \item party. the party affiliation of the candidate as a factor
+#'   \item incumbent. a logical value indicating if the candidate was the incumbent
+#'   ...
+#' }
+#'
+#' @format A data frame with 25784 rows and 8 variables
+#' @source \url{http://www.elections.ca/}
+#' @name toFederalVotes
+NULL

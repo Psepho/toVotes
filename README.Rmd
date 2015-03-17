@@ -1,7 +1,7 @@
 toVotes
 =======
 
-### Municipal
+## Municipal
 
 This package contains cleaned and collated poll by poll results from the 2003, 2006, 2010, and 2014 mayoral elections in Toronto. The original data is from [Toronto Open Data](http://www1.toronto.ca/wps/portal/contentonly?vgnextoid=834689fe9c18b210VgnVCM1000003dd60f89RCRD)
 
@@ -16,7 +16,7 @@ The `toVotes` dataframe contains the:
 
 Also included is the `toPollGeo` dataframe which contains geocode data for the polling stations.
 
-### Federal
+## Federal
 
 `toFederalVotes` contains the results of the 2011 Federal election for Electoral Districts in Toronto. The datframe contains:
 
