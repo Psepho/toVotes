@@ -18,7 +18,7 @@ Also included is the `toPollGeo` dataframe which contains geocode data for the p
 
 ## Federal
 
-`toFederalVotes` contains the results of the 2011 Federal election for Electoral Districts in Toronto. The datframe contains:
+`toFederalVotes` contains the results of the 2008 and 2011 Federal elections for Electoral Districts in Toronto, taken from [Elections Canada](http://www.elections.ca/). The datframe contains:
 
 * year of the election as a factor
 * name of the candidate as last name first name
