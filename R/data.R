@@ -48,9 +48,6 @@ NULL
 #'   \item year. The year of the election as a factor
 #'   \item candidate. The name of the candidate as last name first name
 #'   \item votes. The number of votes received
-#'   \item ward. The ward for the polling station
-#'   \item area. The area for the polling station
-#'   \item type. The type of election, currently only Mayor
 #'   \item district. electoral district for the polling station
 #'   \item poll. poll number for the polling station
 #'   \item type. type of election as federal
