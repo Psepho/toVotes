@@ -60,3 +60,21 @@ NULL
 #' @source \url{http://www.elections.ca/}
 #' @name toFederalVotes
 NULL
+#' Turnout data from the mayoral elections in Toronto.
+#'
+#' Cleaned and packaged turnout statistics from from the 2003, 2006,
+#' 2010, and 2014 mayoral elections in Toronto.
+#'
+#' \itemize{
+#'   \item year. The year of the election as a factor
+#'   \item ward. The ward of the polling station
+#'   \item area. The area of the polling station
+#'   \item prop_voted. The proportion of eligible votes that voted
+#'   \item type. type of election as mayoral
+#'   ...
+#' }
+#'
+#' @format A data frame with 6494 rows and 5 variables
+#' @source \url{http://www1.toronto.ca/wps/portal/contentonly?vgnextoid=9979040a8d88d310VgnVCM10000071d60f89RCRD}
+#' @name toTurnout
+NULL
