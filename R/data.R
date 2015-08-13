@@ -40,9 +40,9 @@ NULL
 #' @format A data frame with 387422 rows and 12 variables
 #' @name toPollGeo
 NULL
-#' Data from the 2008 and 2011 federal elections in Toronto.
+#' Data from the 2006, 2008, and 2011 federal elections in Toronto.
 #'
-#' Cleaned and packaged poll by poll results from the 2008 and 2011 general federal elections for electoral districts in Toronto.
+#' Cleaned and packaged poll by poll results from the 2006, 2008, and 2011 general federal elections for electoral districts in Toronto.
 #'
 #' \itemize{
 #'   \item year. The year of the election as a factor
@@ -56,7 +56,7 @@ NULL
 #'   ...
 #' }
 #'
-#' @format A data frame with 39730 rows and 8 variables
+#' @format A data frame with 65869 rows and 8 variables
 #' @source \url{http://www.elections.ca/}
 #' @name toFederalVotes
 NULL
