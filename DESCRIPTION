@@ -1,6 +1,6 @@
 Package: toVotes
 Title: Data from the mayoral and Federal elections in Toronto
-Version: 0.3.0
+Version: 0.5.0
 Authors@R: as.person(c(
     "Matthew Routley <matt@routleynet.org> [aut, cre]"
     ))
