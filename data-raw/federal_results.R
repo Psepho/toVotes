@@ -27,22 +27,29 @@ names(federal_results) <- iconv(names(federal_results),"WINDOWS-1252","UTF-8")
 federal_results <- dplyr::select(federal_results, contains("Family"), contains("First"),
               contains("Votes"), matches("Affiliation.*English"),
               contains("District Number"), contains("Polling Station Number"), contains("Incumbent"))
+names(federal_results) <- c("last", "first", "votes", "party", "district", "poll", "incumbent")
 federal_results <- dplyr::transmute(federal_results,
-                            candidate = as.factor(paste(federal_results[,1], stringr::str_sub(federal_results$"Candidate's Family Name/Nom de famille du candidat", end = 1), sep = " ")),
+                            candidate = as.factor(stringr::str_c(federal_results$last,
+                                                                 federal_results$first ,
+                                                                 sep = " ")),
                             year = as.factor(sources$year[[this_source]]),
                             type = "federal",
-                            votes = as.integer(federal_results[,3]),
-                            party = federal_results[,4],
-                            district = as.character(federal_results[,5]),
-                            poll = as.character(federal_results[,6]),
-                            incumbent = as.logical(ifelse(federal_results[,7] == "Y", 1, 0))
+                            votes = as.integer(federal_results$votes),
+                            party = as.character(federal_results$party),
+                            district = as.character(federal_results$district),
+                            poll = as.character(federal_results$poll),
+                            incumbent = as.logical(ifelse(federal_results$incumbent == "Y", 1, 0))
                             )
-to_ed <- read.csv("data-raw/TO_federal_election_districts.csv")[,1]
-to_ed <- data.frame(district = as.character(to_ed[!is.na(to_ed)]))
-to_votes <- dplyr::inner_join(federal_results, to_ed)
-toFederalVotes <- rbind(toFederalVotes, to_votes)
 
-toFederalVotes$votes <- as.integer(toFederalVotes$votes)
+
+to_ed <- readr::read_csv("data-raw/TO_federal_election_districts.csv")[,1]
+to_ed <- dplyr::filter(to_ed, !is.na(district))
+to_ed$district <- as.character(to_ed$district)
+to_votes <- dplyr::inner_join(federal_results, to_ed)
+toFederalVotes <- dplyr::bind_rows(toFederalVotes, to_votes)
+toFederalVotes$candidate <- as.factor(toFederalVotes$candidate)
+toFederalVotes$year <- as.factor(toFederalVotes$year)
+toFederalVotes$party <- as.factor(toFederalVotes$party)
 
 save(toFederalVotes, file = "data/toFederalVotes.rda")
 
