@@ -4,3 +4,4 @@
 *.xls
 ggmapTemp.png
 data-raw/pollresults*
+data-raw/fed*
