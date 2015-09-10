@@ -64,78 +64,119 @@ toFederalVotes %>%
 
 # Geocoding ---------------------------------------------------------------
 
+# Data -------------------------------------------------------------------
+
+library(toVotes)
+library(dplyr)
+# Extract a list of Toronto Federal Districts
+data("toFederalVotes")
+to_fed_districts <- unique(toFederalVotes$district)
+# Sumarize just the three major parties, the rest are "Other"
+major_parties <- c("Conservative", "Liberal", "NDP")
+fed_votes <- toFederalVotes
+# Standardize the names
+levels(fed_votes$party)[16] <- "NDP"
+levels(fed_votes$party)[19] <- "Conservative"
+levels(fed_votes$party)[4] <- "NDP"
+levels(fed_votes$party)[!(levels(fed_votes$party) %in% major_parties)] <- "Other"
+droplevels(fed_votes)
+fed_votes <- fed_votes %>%
+  mutate(# Clean up polling labels
+         # -[letter]|[number] indicate sub-polls and should be merged
+         poll = stringr::str_replace(poll, "(\\d{1,3})(-\\d+\\w?|\\D$)", "\\1")
+  ) %>%
+  group_by(year, district, poll, party) %>%
+  summarize(votes = sum(votes)) %>%
+  mutate(prop_votes = votes/sum(votes))
+
+# Map -------------------------------------------------------------------
+
 # Shapefiles are listed here: http://geogratis.gc.ca/api/en/nrcan-rncan/ess-sst/-/(urn:iso:series)federal-electoral-districts-of-canada
 # Map image is here: http://www.elections.ca/res/cir/maps2/mapprov.asp?map=Toronto&b=n&prov=35&lang=e
 
-poll_2011 <- "http://ftp2.cits.rncan.gc.ca/pub/geott/electoral/2011/pd308.2011.zip"
-download.file(poll_2011, destfile = "data-raw/pd308.2011.zip")
-unzip("data-raw/pd308.2011.zip", exdir="data-raw/fed")
+library(ggplot2)
 library(rgdal)
-poll_bound_shapefile <- rgdal::readOGR(dsn = "data-raw/fed", layer = "pd_a")
-poll_bound_shapefile <- poll_bound_shapefile[poll_bound_shapefile$FED_NUM %in% to_fed_districts,]
-poll_bound_shapefile <- spTransform(poll_bound_shapefile, CRS("+proj=longlat +datum=WGS84"))
-plot(poll_bound_shapefile)
-
-poll_loc_shapefile <- rgdal::readOGR(dsn = "data-raw/fed", layer = "pd_p")
-ogrListLayers("data-raw/fed/pd_p.dbf")
-ogrInfo("data-raw/fed/pd_p.shp", "pd_p")
-
-poll_loc_shapefile <- poll_loc_shapefile[poll_loc_shapefile$FED_NUM %in% to_fed_districts,]
-to_shapefile <- rgdal::spTransform(poll_loc_shapefile, sp::CRS("+proj=longlat +datum=WGS84"))
-
-library(rgdal)
-plot(to_shapefile)
-
-shapefile_2011@proj4string
-
-fed_geo_2014 <- ggplot2::fortify(shapefile_2011, region="FEDNUM")
-
-
-federal_geo_2011_url <- "http://ftp2.cits.rncan.gc.ca/pub/geott/electoral/2011/fed308.2011.zip"
-if(file.exists("data-raw/fed308.2011.zip")) {
+library(maptools)
+library(ggmap)
+library(rgeos)
+# Download and extract the shapefile
+federal_geo_2011_url <- "http://ftp2.cits.rncan.gc.ca/pub/geott/electoral/2011/pd308.2011.zip"
+if(file.exists("data-raw/pd308.2011.zip")) {
   # Nothing to do
 }  else {
-  download.file(federal_geo_2011_url, destfile = "data-raw/fed308.2011.zip")
-  unzip("data-raw/fed308.2011.zip", exdir="data-raw/fed")
+  download.file(federal_geo_2011_url, destfile = "data-raw/pd308.2011.zip")
+  unzip("data-raw/pd308.2011.zip", exdir="data-raw/pd308.2011")
 }
+# PD_A is poll boundaries, match PD_NUM from 1 to 399 (normal polls)
+# PD_P is poll locations, match PD_NUM from 400 to 499 (single building) and 500 to 599 (mobile)
+# Advanced polls (PD_NUM 600 to 699) match both PD_A both PD_P
+# FED_CA is electoral districts
+# FED_NUM and EMRP_NAME is shape files match Electoral District Number and Polling Station Number in vote data
+# S/R polls are Special Voting Rules using special ballots
+# Read in the poll boundary shapefile and filter to just Toronto districts
+poll_boundaries <- rgdal::readOGR(dsn = "data-raw/pd308.2011", layer = "pd_a") %>%
+  spTransform(CRS('+init=epsg:4326')) %>%
+  ggplot2::fortify(region="PD_ID")
+# poll_locations <- readOGR(dsn = "data-raw/pd308.2011", layer = "pd_p") %>%
+#   spTransform(CRS('+init=epsg:4326')) %>%
+#   ggplot2::fortify(region="PD_ID")
+# rgdal::ogrListLayers("data-raw/pd308.2011/pd_p.shp")
+# rgdal::ogrInfo("data-raw/pd308.2011/pd_p.shp", "pd_p")
 
-shapefile_2011 <- rgdal::readOGR(dsn = "data-raw/fed", layer = "FED_CA_1.0_0_ENG")
-shapefile_2011@proj4string
-shapefile_2011 <- spTransform(shapefile_2011, CRS("+proj=longlat +datum=WGS84"))
-fed_geo_2014 <- ggplot2::fortify(shapefile_2011, region="FEDNUM")
-data("toFederalVotes")
-to_fed_districts <- unique(toFederalVotes$district)
-fed_geo_2014 <- dplyr::filter(fed_geo_2014, id %in% to_fed_districts) #stringr::str_sub(fed_geo_2014$id,1,2) == "35")
-names(fed_geo_2014)[length(names(fed_geo_2014))] <- "district"
-fed_geo_2014$year <- as.factor("2011")
-rm(shapefile_2011)
+ec_id <- dplyr::data_frame(id = poll_boundaries@data$PD_ID,
+                           district = poll_boundaries@data$FED_NUM,
+                           poll = poll_boundaries@data$PD_NUM) %>%
+  filter(district %in% to_fed_districts)
 
-library(dplyr)
-major_parties <- c("Conservative", "Green Party", "Liberal", "NDP-New Democratic Party")
-fed_results <- toFederalVotes %>%
-  filter(year == "2011", party %in% major_parties) %>% # Getting memory errors for full dataframe
-  group_by(year, party, district) %>%
-  summarize(votes = sum(votes))
-fed_results <- droplevels(fed_results)
-levels(fed_results$party)[4] <- "NDP"
-fed_geo <- dplyr::left_join(fed_results, fed_geo_2014)
-rm(fed_results, fed_geo_2014, federal_geo_2011_url, major_parties)
+test <- dplyr::ungroup(fed_votes) %>%
+  mutate(district = as.integer(district),
+         poll = as.integer(poll)) %>%
+  dplyr::filter(year == 2011) %>%
+  dplyr::left_join(ec_id) %>%
+  group_by(district, poll, party)
 
-library(ggplot2)
-ggplot(fed_geo) +
-  aes(long, lat, group=group, fill=votes) +
-  geom_polygon() +
-  geom_path(color="white") +
-  coord_equal() +
+
+# Plot the map
+# TODO: Update to plot polls, not districts
+
+ggplot(votes, aes(map_id = district)) +
+  geom_map(aes(fill = votes), map = fed_geo_2014) +
   scale_colour_brewer("Votes") +
+  expand_limits(x = fed_geo_2014$long, y = fed_geo_2014$lat) +
   facet_wrap(~party)
 
+# Getting clipping with this approach
 
-library(ggmap)
-library(mapproj)
-toronto_map <- qmap("queens park,toronto", zoom = 11, maptype = 'terrain')
-toronto_map +
-  geom_polygon(aes(x=long, y=lat, group=group, fill=votes), alpha = 5/6, data=fed_geo) +
-  scale_colour_brewer("Votes") +
-  facet_wrap(~party)
+# library(ggmap)
+# library(mapproj)
+# toronto_map <- qmap("toronto", zoom = 11, maptype = 'terrain')
+# toronto_map +
+#   geom_polygon(aes(x=long, y=lat, group=group, fill=votes), alpha = 5/6, data=fed_geo) +
+#   scale_colour_brewer("Votes") +
+#   facet_wrap(~party)
 
+# Residual
+
+# poll_2011 <- "http://ftp2.cits.rncan.gc.ca/pub/geott/electoral/2011/pd308.2011.zip"
+# download.file(poll_2011, destfile = "data-raw/pd308.2011.zip")
+# unzip("data-raw/pd308.2011.zip", exdir="data-raw/fed")
+# library(rgdal)
+# poll_bound_shapefile <- poll_bound_shapefile[poll_bound_shapefile$FED_NUM %in% to_fed_districts,]
+# poll_bound_shapefile@proj4string
+# wgs84proj <- CRS('+init=epsg:4326') #CRS("+proj=longlat +datum=WGS84"))
+# poll_bound_shapefile <- spTransform(poll_bound_shapefile, wgs84proj)
+# plot(poll_bound_shapefile)
+#
+# poll_loc_shapefile <- rgdal::readOGR(dsn = "data-raw/fed", layer = "pd_p")
+# ogrListLayers("data-raw/fed/pd_p.dbf")
+# ogrInfo("data-raw/fed/pd_p.shp", "pd_p")
+#
+# poll_loc_shapefile <- poll_loc_shapefile[poll_loc_shapefile$FED_NUM %in% to_fed_districts,]
+# to_shapefile <- rgdal::spTransform(poll_loc_shapefile, sp::CRS("+proj=longlat +datum=WGS84"))
+#
+# library(rgdal)
+# plot(to_shapefile)
+#
+# shapefile_2011@proj4string
+#
+# fed_geo_2014 <- ggplot2::fortify(shapefile_2011, region="FEDNUM")
