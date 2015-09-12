@@ -75,7 +75,7 @@ to_fed_districts <- unique(toFederalVotes$district)
 major_parties <- c("Conservative", "Liberal", "NDP")
 fed_votes <- toFederalVotes
 # Standardize the names
-levels(fed_votes$party)[16] <- "NDP"
+levels(fed_votes$party)[17] <- "NDP"
 levels(fed_votes$party)[19] <- "Conservative"
 levels(fed_votes$party)[4] <- "NDP"
 levels(fed_votes$party)[!(levels(fed_votes$party) %in% major_parties)] <- "Other"
@@ -114,69 +114,57 @@ if(file.exists("data-raw/pd308.2011.zip")) {
 # FED_NUM and EMRP_NAME is shape files match Electoral District Number and Polling Station Number in vote data
 # S/R polls are Special Voting Rules using special ballots
 # Read in the poll boundary shapefile and filter to just Toronto districts
-poll_boundaries <- rgdal::readOGR(dsn = "data-raw/pd308.2011", layer = "pd_a") %>%
-  spTransform(CRS('+init=epsg:4326')) %>%
-  ggplot2::fortify(region="PD_ID")
+poll_boundaries_2011 <- rgdal::readOGR(dsn = "data-raw/pd308.2011", layer = "pd_a") %>%
+  spTransform(CRS('+init=epsg:4326'))
+
+# saveRDS(poll_boundaries_2011, file = "data/poll_boundaries_2011.Rds")
+# poll_boundaries_2011 <- readRDS("data/poll_boundaries_2011.Rds")
+
+# TODO: Can't get pd_p to import
 # poll_locations <- readOGR(dsn = "data-raw/pd308.2011", layer = "pd_p") %>%
-#   spTransform(CRS('+init=epsg:4326')) %>%
-#   ggplot2::fortify(region="PD_ID")
+#   spTransform(CRS('+init=epsg:4326'))
 # rgdal::ogrListLayers("data-raw/pd308.2011/pd_p.shp")
 # rgdal::ogrInfo("data-raw/pd308.2011/pd_p.shp", "pd_p")
 
-ec_id <- dplyr::data_frame(id = poll_boundaries@data$PD_ID,
-                           district = poll_boundaries@data$FED_NUM,
-                           poll = poll_boundaries@data$PD_NUM) %>%
+# Find the ec_ids for Toronto Electoral Districts
+ec_id <- dplyr::data_frame(id = poll_boundaries_2011@data$PD_ID,
+                           district = poll_boundaries_2011@data$FED_NUM,
+                           poll = poll_boundaries_2011@data$PD_NUM) %>%
   filter(district %in% to_fed_districts)
-
-test <- dplyr::ungroup(fed_votes) %>%
+# Just 2011 votes for the 2011 shapefile
+fed_votes_2011 <- dplyr::ungroup(fed_votes) %>%
   mutate(district = as.integer(district),
          poll = as.integer(poll)) %>%
-  dplyr::filter(year == 2011) %>%
-  dplyr::left_join(ec_id) %>%
-  group_by(district, poll, party)
-
+  dplyr::filter(year == 2011)
+# Add ec_id to the vote data
+fed_votes_2011 <- dplyr::left_join(fed_votes_2011, ec_id)
+geo_votes_2011 <- ggplot2::fortify(poll_boundaries_2011, region="PD_ID")
+# saveRDS(geo_votes_2011, file = "data/geo_votes_2011.Rds")
+# geo_votes_2011 <- readRDS("data/geo_votes_2011.Rds")
+# Just the TO ec_ids
+geo_votes_2011 <- dplyr::filter(geo_votes_2011, id %in% ec_id$id)
 
 # Plot the map
-# TODO: Update to plot polls, not districts
-
-ggplot(votes, aes(map_id = district)) +
-  geom_map(aes(fill = votes), map = fed_geo_2014) +
-  scale_colour_brewer("Votes") +
-  expand_limits(x = fed_geo_2014$long, y = fed_geo_2014$lat) +
-  facet_wrap(~party)
+ggplot(fed_votes_2011, aes(map_id = id)) +
+  geom_map(aes(fill = cut_interval(prop_votes,length = 0.15)), map = geo_votes_2011) +
+  scale_fill_brewer("Proportion of votes", labels=c("Low", rep("",5), "High")) +
+  labs(x="", y="", title="2011 Federal General Election") +
+  theme(axis.ticks.y = element_blank(), axis.text.y = element_blank(), # get rid of x ticks/text
+        axis.ticks.x = element_blank(), axis.text.x = element_blank(), # get rid of y ticks/text
+        plot.title = element_text(lineheight=.8, face="bold", vjust=1)) + # make title bold and add space
+  expand_limits(x = geo_votes_2011$long, y = geo_votes_2011$lat) +
+  facet_wrap(~party, as.table = FALSE)
+ggsave("2011_prop_votes.png", scale = 1, dpi = 200)
 
 # Getting clipping with this approach
-
-# library(ggmap)
-# library(mapproj)
-# toronto_map <- qmap("toronto", zoom = 11, maptype = 'terrain')
-# toronto_map +
-#   geom_polygon(aes(x=long, y=lat, group=group, fill=votes), alpha = 5/6, data=fed_geo) +
-#   scale_colour_brewer("Votes") +
-#   facet_wrap(~party)
-
-# Residual
-
-# poll_2011 <- "http://ftp2.cits.rncan.gc.ca/pub/geott/electoral/2011/pd308.2011.zip"
-# download.file(poll_2011, destfile = "data-raw/pd308.2011.zip")
-# unzip("data-raw/pd308.2011.zip", exdir="data-raw/fed")
-# library(rgdal)
-# poll_bound_shapefile <- poll_bound_shapefile[poll_bound_shapefile$FED_NUM %in% to_fed_districts,]
-# poll_bound_shapefile@proj4string
-# wgs84proj <- CRS('+init=epsg:4326') #CRS("+proj=longlat +datum=WGS84"))
-# poll_bound_shapefile <- spTransform(poll_bound_shapefile, wgs84proj)
-# plot(poll_bound_shapefile)
-#
-# poll_loc_shapefile <- rgdal::readOGR(dsn = "data-raw/fed", layer = "pd_p")
-# ogrListLayers("data-raw/fed/pd_p.dbf")
-# ogrInfo("data-raw/fed/pd_p.shp", "pd_p")
-#
-# poll_loc_shapefile <- poll_loc_shapefile[poll_loc_shapefile$FED_NUM %in% to_fed_districts,]
-# to_shapefile <- rgdal::spTransform(poll_loc_shapefile, sp::CRS("+proj=longlat +datum=WGS84"))
-#
-# library(rgdal)
-# plot(to_shapefile)
-#
-# shapefile_2011@proj4string
-#
-# fed_geo_2014 <- ggplot2::fortify(shapefile_2011, region="FEDNUM")
+fed_votes_2011$id <- as.character(fed_votes_2011$id)
+test <- dplyr::left_join(geo_votes_2011, fed_votes_2011)
+toronto_map <- qmap("toronto", zoom = 11, maptype = 'terrain')
+toronto_map +
+  geom_polygon(aes(x=long, y=lat, group=group, fill = cut_interval(prop_votes,length = 0.15)), alpha = 5/6, data=test) +
+  scale_fill_brewer("Proportion of votes") +
+  labs(x="", y="", title="Votes cast by poll in the 2011 Federal election") +
+  theme(axis.ticks.y = element_blank(), axis.text.y = element_blank(), # get rid of x ticks/text
+        axis.ticks.x = element_blank(), axis.text.x = element_blank(), # get rid of y ticks/text
+        plot.title = element_text(lineheight=.8, face="bold", vjust=1)) + # make title bold and add space
+  facet_wrap(~party)
