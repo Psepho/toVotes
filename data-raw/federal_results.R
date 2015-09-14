@@ -147,7 +147,7 @@ geo_votes_2011 <- dplyr::filter(geo_votes_2011, id %in% ec_id$id)
 # Plot the map
 ggplot(fed_votes_2011, aes(map_id = id)) +
   geom_map(aes(fill = cut_interval(prop_votes,length = 0.15)), map = geo_votes_2011) +
-  scale_fill_brewer("Proportion of votes", labels=c("Low", rep("",5), "High")) +
+  scale_fill_brewer("Proportion of votes", labels=c("Low", rep("",5), "High"), palette = "RdBu") +
   labs(x="", y="", title="2011 Federal General Election") +
   theme(axis.ticks.y = element_blank(), axis.text.y = element_blank(), # get rid of x ticks/text
         axis.ticks.x = element_blank(), axis.text.x = element_blank(), # get rid of y ticks/text
