@@ -139,15 +139,15 @@ fed_votes_2011 <- dplyr::ungroup(fed_votes) %>%
 # Add ec_id to the vote data
 fed_votes_2011 <- dplyr::left_join(fed_votes_2011, ec_id)
 geo_votes_2011 <- ggplot2::fortify(poll_boundaries_2011, region="PD_ID")
-# saveRDS(geo_votes_2011, file = "data/geo_votes_2011.Rds")
-# geo_votes_2011 <- readRDS("data/geo_votes_2011.Rds")
 # Just the TO ec_ids
 geo_votes_2011 <- dplyr::filter(geo_votes_2011, id %in% ec_id$id)
+# saveRDS(geo_votes_2011, file = "data/geo_votes_2011.Rds")
+# geo_votes_2011 <- readRDS("data/geo_votes_2011.Rds")
 
 # Plot the map
 ggplot(fed_votes_2011, aes(map_id = id)) +
   geom_map(aes(fill = cut_interval(prop_votes,length = 0.15)), map = geo_votes_2011) +
-  scale_fill_brewer("Proportion of votes", labels=c("Low", rep("",5), "High"), palette = "RdBu") +
+  scale_fill_brewer("Proportion of votes", labels=c("Low", rep("",5), "High"), palette = "Oranges") +
   labs(x="", y="", title="2011 Federal General Election") +
   theme(axis.ticks.y = element_blank(), axis.text.y = element_blank(), # get rid of x ticks/text
         axis.ticks.x = element_blank(), axis.text.x = element_blank(), # get rid of y ticks/text
