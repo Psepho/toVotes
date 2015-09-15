@@ -4,9 +4,9 @@
 
 sources <- list(year = c(2006, 2008, 2011),
                 url = c("http://www.elections.ca/scripts/OVR2006/25/data_donnees/pollresults_resultatsbureau_canada.zip",
-                            "http://www.elections.ca/scripts/OVR2008/31/data/pollresults_resultatsbureau_canada.zip",
-                            "http://www.elections.ca/scripts/OVR2011/34/data_donnees/pollresults_resultatsbureau_canada.zip")
-                )
+                        "http://www.elections.ca/scripts/OVR2008/31/data/pollresults_resultatsbureau_canada.zip",
+                        "http://www.elections.ca/scripts/OVR2011/34/data_donnees/pollresults_resultatsbureau_canada.zip")
+)
 this_source <- 3 # the results to pull
 zip_file <- "data-raw/pollresults_resultatsbureau_canada.zip"
 if(file.exists(zip_file)) { # Only download the data once
@@ -25,21 +25,21 @@ federal_results <- do.call("rbind", lapply(on_files, function(.file){readr::read
 names(federal_results) <- iconv(names(federal_results),"WINDOWS-1252","UTF-8")
 # Header names change slightly across years, these work, so far
 federal_results <- dplyr::select(federal_results, contains("Family"), contains("First"),
-              contains("Votes"), matches("Affiliation.*English"),
-              contains("District Number"), contains("Polling Station Number"), contains("Incumbent"))
+                                 contains("Votes"), matches("Affiliation.*English"),
+                                 contains("District Number"), contains("Polling Station Number"), contains("Incumbent"))
 names(federal_results) <- c("last", "first", "votes", "party", "district", "poll", "incumbent")
 federal_results <- dplyr::transmute(federal_results,
-                            candidate = as.factor(stringr::str_c(federal_results$last,
-                                                                 federal_results$first ,
-                                                                 sep = " ")),
-                            year = as.factor(sources$year[[this_source]]),
-                            type = "federal",
-                            votes = as.integer(federal_results$votes),
-                            party = as.character(federal_results$party),
-                            district = as.character(federal_results$district),
-                            poll = as.character(federal_results$poll),
-                            incumbent = as.logical(ifelse(federal_results$incumbent == "Y", 1, 0))
-                            )
+                                    candidate = as.factor(stringr::str_c(federal_results$last,
+                                                                         federal_results$first ,
+                                                                         sep = " ")),
+                                    year = as.factor(sources$year[[this_source]]),
+                                    type = "federal",
+                                    votes = as.integer(federal_results$votes),
+                                    party = as.character(federal_results$party),
+                                    district = as.character(federal_results$district),
+                                    poll = as.character(federal_results$poll),
+                                    incumbent = as.logical(ifelse(federal_results$incumbent == "Y", 1, 0))
+)
 
 to_ed <- readr::read_csv("data-raw/TO_federal_election_districts.csv")[,1]
 to_ed <- dplyr::filter(to_ed, !is.na(district))
@@ -82,8 +82,8 @@ levels(fed_votes$party)[!(levels(fed_votes$party) %in% major_parties)] <- "Other
 droplevels(fed_votes)
 fed_votes <- fed_votes %>%
   mutate(# Clean up polling labels
-         # -[letter]|[number] indicate sub-polls and should be merged
-         poll = stringr::str_replace(poll, "(\\d{1,3})(-\\d+\\w?|\\D$)", "\\1")
+    # -[letter]|[number] indicate sub-polls and should be merged
+    poll = stringr::str_replace(poll, "(\\d{1,3})(-\\d+\\w?|\\D$)", "\\1")
   ) %>%
   group_by(year, district, poll, party) %>%
   summarize(votes = sum(votes)) %>%
@@ -168,3 +168,63 @@ toronto_map +
         axis.ticks.x = element_blank(), axis.text.x = element_blank(), # get rid of y ticks/text
         plot.title = element_text(lineheight=.8, face="bold", vjust=1)) + # make title bold and add space
   facet_wrap(~party)
+
+
+# Spatial aggregation -----------------------------------------------------
+
+library(dplyr)
+library(rgeos)
+library(rgdal)
+
+# Poll boundaries
+poll_boundaries_2011 <- readRDS("data/poll_boundaries_2011.Rds")
+# Census tracts
+if(file.exists("data-raw/gct_000b11a_e.zip")) {
+  # Nothing to do
+}  else {
+  download.file("http://www12.statcan.gc.ca/census-recensement/2011/geo/bound-limit/files-fichiers/gct_000b11a_e.zip",
+                destfile = "data-raw/gct_000a11a_e.zip")
+  unzip("data-raw/gct_000b11a_e.zip", exdir="data-raw/gct")
+}
+
+ct_geo <- rgdal::readOGR(dsn = "data-raw/gct", layer = "gct_000b11a_e") %>%
+  spTransform(CRS('+init=epsg:4326'))
+
+# Toronto Wards
+if(file.exists("data-raw/subdivisions_2010.zip")) {
+  # Nothing to do
+}  else {
+  download.file("http://opendata.toronto.ca/gcc/voting_subdivision_2010_wgs84.zip",
+                destfile = "data-raw/subdivisions_2010.zip")
+  unzip("data-raw/subdivisions_2010.zip", exdir="data-raw/to_wards")
+}
+to_geo <- rgdal::readOGR(dsn = "data-raw/to_wards", layer = "VOTING_SUBDIVISION_2010_WGS84") %>%
+  spTransform(CRS('+init=epsg:4326'))
+proj4string(to_geo) == proj4string(ct_geo)
+# Subset the CTs to just those in Toronto
+ct_geo_to <- ct_geo[to_geo,]
+to_poll_boundaries <- poll_boundaries_2011[ct_geo_to,]
+# saveRDS(to_poll_boundaries, file = "data/to_poll_boundaries.Rds")
+# to_poll_boundaries <- readRDS("data/to_poll_boundaries.Rds")
+plot(to_poll_boundaries)
+plot(ct_geo_to)
+plot(to_geo)
+
+to_fed_districts <- unique(toFederalVotes$district)
+ec_id <- dplyr::data_frame(id = to_poll_boundaries@data$PD_ID,
+                           district = to_poll_boundaries@data$FED_NUM,
+                           poll = to_poll_boundaries@data$PD_NUM) %>%
+  filter(district %in% to_fed_districts)
+# Just 2011 votes for the 2011 shapefile
+fed_votes_2011 <- dplyr::ungroup(fed_votes) %>%
+  mutate(district = as.integer(district),
+         poll = as.integer(poll)) %>%
+  dplyr::filter(year == 2011) %>%
+  select(-year)
+# Add ec_id to the vote data
+fed_votes_2011 <- dplyr::left_join(fed_votes_2011, ec_id)
+to_poll_boundaries@data <- left_join(to_poll_boundaries@data, fed_votes_2011, by = c("PD_ID" = "id"))
+
+votes_agg <- aggregate(x = to_poll_boundaries["votes"], by = ct_geo_to, FUN = sum)
+head(votes_agg@data)
+sum(votes_agg@data$votes, na.rm = TRUE)
