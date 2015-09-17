@@ -75,9 +75,7 @@ to_fed_districts <- unique(toFederalVotes$district)
 major_parties <- c("Conservative", "Liberal", "NDP")
 fed_votes <- toFederalVotes
 # Standardize the names
-levels(fed_votes$party)[17] <- "NDP"
-levels(fed_votes$party)[19] <- "Conservative"
-levels(fed_votes$party)[4] <- "NDP"
+levels(fed_votes$party)[c(16, 17, 19)] <- c("NDP", "NDP", "Conservative")
 levels(fed_votes$party)[!(levels(fed_votes$party) %in% major_parties)] <- "Other"
 droplevels(fed_votes)
 fed_votes <- fed_votes %>%
