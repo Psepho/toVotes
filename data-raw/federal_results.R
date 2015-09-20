@@ -4,9 +4,9 @@
 
 sources <- list(year = c(2006, 2008, 2011),
                 url = c("http://www.elections.ca/scripts/OVR2006/25/data_donnees/pollresults_resultatsbureau_canada.zip",
-                            "http://www.elections.ca/scripts/OVR2008/31/data/pollresults_resultatsbureau_canada.zip",
-                            "http://www.elections.ca/scripts/OVR2011/34/data_donnees/pollresults_resultatsbureau_canada.zip")
-                )
+                        "http://www.elections.ca/scripts/OVR2008/31/data/pollresults_resultatsbureau_canada.zip",
+                        "http://www.elections.ca/scripts/OVR2011/34/data_donnees/pollresults_resultatsbureau_canada.zip")
+)
 this_source <- 3 # the results to pull
 zip_file <- "data-raw/pollresults_resultatsbureau_canada.zip"
 if(file.exists(zip_file)) { # Only download the data once
@@ -25,21 +25,21 @@ federal_results <- do.call("rbind", lapply(on_files, function(.file){readr::read
 names(federal_results) <- iconv(names(federal_results),"WINDOWS-1252","UTF-8")
 # Header names change slightly across years, these work, so far
 federal_results <- dplyr::select(federal_results, contains("Family"), contains("First"),
-              contains("Votes"), matches("Affiliation.*English"),
-              contains("District Number"), contains("Polling Station Number"), contains("Incumbent"))
+                                 contains("Votes"), matches("Affiliation.*English"),
+                                 contains("District Number"), contains("Polling Station Number"), contains("Incumbent"))
 names(federal_results) <- c("last", "first", "votes", "party", "district", "poll", "incumbent")
 federal_results <- dplyr::transmute(federal_results,
-                            candidate = as.factor(stringr::str_c(federal_results$last,
-                                                                 federal_results$first ,
-                                                                 sep = " ")),
-                            year = as.factor(sources$year[[this_source]]),
-                            type = "federal",
-                            votes = as.integer(federal_results$votes),
-                            party = as.character(federal_results$party),
-                            district = as.character(federal_results$district),
-                            poll = as.character(federal_results$poll),
-                            incumbent = as.logical(ifelse(federal_results$incumbent == "Y", 1, 0))
-                            )
+                                    candidate = as.factor(stringr::str_c(federal_results$last,
+                                                                         federal_results$first ,
+                                                                         sep = " ")),
+                                    year = as.factor(sources$year[[this_source]]),
+                                    type = "federal",
+                                    votes = as.integer(federal_results$votes),
+                                    party = as.character(federal_results$party),
+                                    district = as.character(federal_results$district),
+                                    poll = as.character(federal_results$poll),
+                                    incumbent = as.logical(ifelse(federal_results$incumbent == "Y", 1, 0))
+)
 
 to_ed <- readr::read_csv("data-raw/TO_federal_election_districts.csv")[,1]
 to_ed <- dplyr::filter(to_ed, !is.na(district))
@@ -91,8 +91,8 @@ rm(star_status)
 # Summarize votes by year, district, and poll
 fed_votes <- fed_votes %>%
   mutate(# Clean up polling labels
-         # -[letter]|[number] indicate sub-polls and should be merged
-         poll = stringr::str_replace(poll, "(\\d{1,3})(-\\d+\\w?|\\D$)", "\\1")
+    # -[letter]|[number] indicate sub-polls and should be merged
+    poll = stringr::str_replace(poll, "(\\d{1,3})(-\\d+\\w?|\\D$)", "\\1")
   ) %>%
   group_by(year, district, poll, party) %>%
   summarize(votes = sum(votes)) %>%
