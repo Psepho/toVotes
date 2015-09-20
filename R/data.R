@@ -78,3 +78,57 @@ NULL
 #' @source \url{http://www1.toronto.ca/wps/portal/contentonly?vgnextoid=9979040a8d88d310VgnVCM10000071d60f89RCRD}
 #' @name toTurnout
 NULL
+#' Votes from the 2006 Federal general election converted to census tracts.
+#'
+#' Geocoded votes by census tract for the 2006 Federal general election.
+#' Votes are grouped into Conservative, Liberal, NDP, and Other
+#'
+#' @format A Spatial object with 579 observations of four variables
+#' @source \url{http://www.elections.ca}
+#' @name fed_votes_2006_geo
+NULL
+#' Votes from the 2008 Federal general election converted to census tracts.
+#'
+#' Geocoded votes by census tract for the 2008 Federal general election.
+#' Votes are grouped into Conservative, Liberal, NDP, and Other
+#'
+#' @format A Spatial object with 579 observations of four variables
+#' @source \url{http://www.elections.ca}
+#' @name fed_votes_2008_geo
+NULL
+#' Votes from the 2011 Federal general election converted to census tracts.
+#'
+#' Geocoded votes by census tract for the 2011 Federal general election.
+#' Votes are grouped into Conservative, Liberal, NDP, and Other
+#'
+#' @format A Spatial object with 579 observations of four variables
+#' @source \url{http://www.elections.ca}
+#' @name fed_votes_2011_geo
+NULL
+#' Votes from the 2006 Federal general election by poll boundary.
+#'
+#' Geocoded votes by poll boundary for the 2006 Federal general election.
+#' Votes are grouped into Conservative, Liberal, NDP, and Other
+#'
+#' @format A Spatial object with 3,907 observations of four variables
+#' @source \url{http://www.elections.ca}
+#' @name to_poll_boundaries_2006
+NULL
+#' Votes from the 2008 Federal general election by poll boundary.
+#'
+#' Geocoded votes by poll boundary for the 2008 Federal general election.
+#' Votes are grouped into Conservative, Liberal, NDP, and Other
+#'
+#' @format A Spatial object with 3,911 observations of four variables
+#' @source \url{http://www.elections.ca}
+#' @name to_poll_boundaries_2008
+NULL
+#' Votes from the 2011 Federal general election by poll boundary.
+#'
+#' Geocoded votes by poll boundary for the 2011 Federal general election.
+#' Votes are grouped into Conservative, Liberal, NDP, and Other
+#'
+#' @format A Spatial object with 3,868 observations of four variables
+#' @source \url{http://www.elections.ca}
+#' @name to_poll_boundaries_2011
+NULL
