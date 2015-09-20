@@ -6,3 +6,6 @@ ggmapTemp.png
 data-raw/pollresults*
 data-raw/fed*
 data-raw/pd308*
+data-raw/*.zip
+data-raw/to_wards
+data-raw/gct

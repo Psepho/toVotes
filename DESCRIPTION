@@ -1,6 +1,6 @@
 Package: toVotes
 Title: Data from the mayoral and Federal elections in Toronto
-Version: 0.5.0
+Version: 0.6.0
 Authors@R: as.person(c(
     "Matthew Routley <matt@routleynet.org> [aut, cre]"
     ))
@@ -20,5 +20,5 @@ Suggests:
     stringr (>= 0.6),
     tidyr (>= 0.1),
     readr (>= 0.1)
-URL: http://psephoanalytics.blogspot.ca/
+URL: http://psephoanalytics.ca/
 BugReports: https://github.com/mroutley/toVotes/issues

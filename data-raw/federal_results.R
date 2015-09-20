@@ -70,16 +70,25 @@ library(toVotes)
 library(dplyr)
 # Extract a list of Toronto Federal Districts
 data("toFederalVotes")
-to_fed_districts <- unique(toFederalVotes$district)
+fed_votes <- toFederalVotes
 # Sumarize just the three major parties, the rest are "Other"
 major_parties <- c("Conservative", "Liberal", "NDP")
-fed_votes <- toFederalVotes
 # Standardize the names
-levels(fed_votes$party)[17] <- "NDP"
-levels(fed_votes$party)[19] <- "Conservative"
-levels(fed_votes$party)[4] <- "NDP"
+levels(fed_votes$party)[c(16, 17, 19)] <- c("NDP", "NDP", "Conservative")
 levels(fed_votes$party)[!(levels(fed_votes$party) %in% major_parties)] <- "Other"
 droplevels(fed_votes)
+# Add in star candidate status
+star_status <- readr::read_csv("data-raw/star_status.csv") %>%
+  mutate(year = as.factor(year),
+         candidate = as.factor(candidate))
+candidates <- dplyr::left_join(fed_votes, star_status) %>%
+  group_by(year, district, poll, party) %>%
+  summarize(star_candidate = max(star_candidate),
+            incumbent = max(incumbent),
+            n = n()) %>%
+  select(-n)
+rm(star_status)
+# Summarize votes by year, district, and poll
 fed_votes <- fed_votes %>%
   mutate(# Clean up polling labels
          # -[letter]|[number] indicate sub-polls and should be merged
@@ -89,82 +98,101 @@ fed_votes <- fed_votes %>%
   summarize(votes = sum(votes)) %>%
   mutate(prop_votes = votes/sum(votes))
 
-# Map -------------------------------------------------------------------
+# Any votes in polls > 399 are from specific locations, rather than within boundaries
+# votes_poll_locations <- fed_votes %>%
+#   filter(poll > 399) %>%
+#   group_by(year, district, party) %>%
+#   summarize(votes = sum(votes))
+# Turns out they are only in one district in 2008
+# So we'll leave them alone
+#fed_votes <- dplyr::left_join(fed_votes, candidates)
+rm(candidates)
 
-# Shapefiles are listed here: http://geogratis.gc.ca/api/en/nrcan-rncan/ess-sst/-/(urn:iso:series)federal-electoral-districts-of-canada
-# Map image is here: http://www.elections.ca/res/cir/maps2/mapprov.asp?map=Toronto&b=n&prov=35&lang=e
+# Shapefiles -------------------------------------------------------------------
 
-library(ggplot2)
-library(rgdal)
-library(maptools)
-library(ggmap)
+library(dplyr)
 library(rgeos)
-# Download and extract the shapefile
-federal_geo_2011_url <- "http://ftp2.cits.rncan.gc.ca/pub/geott/electoral/2011/pd308.2011.zip"
-if(file.exists("data-raw/pd308.2011.zip")) {
-  # Nothing to do
-}  else {
-  download.file(federal_geo_2011_url, destfile = "data-raw/pd308.2011.zip")
-  unzip("data-raw/pd308.2011.zip", exdir="data-raw/pd308.2011")
-}
+library(rgdal)
+
+# Federal election shapefiles are listed here: http://geogratis.gc.ca/api/en/nrcan-rncan/ess-sst/-/(urn:iso:series)federal-electoral-districts-of-canada
+# Map image is here: http://www.elections.ca/res/cir/maps2/mapprov.asp?map=Toronto&b=n&prov=35&lang=e
 # PD_A is poll boundaries, match PD_NUM from 1 to 399 (normal polls)
 # PD_P is poll locations, match PD_NUM from 400 to 499 (single building) and 500 to 599 (mobile)
 # Advanced polls (PD_NUM 600 to 699) match both PD_A both PD_P
 # FED_CA is electoral districts
 # FED_NUM and EMRP_NAME is shape files match Electoral District Number and Polling Station Number in vote data
 # S/R polls are Special Voting Rules using special ballots
-# Read in the poll boundary shapefile and filter to just Toronto districts
-poll_boundaries_2011 <- rgdal::readOGR(dsn = "data-raw/pd308.2011", layer = "pd_a") %>%
-  spTransform(CRS('+init=epsg:4326'))
+years <- c(2006, 2008, 2011)
+base_url <- "http://ftp2.cits.rncan.gc.ca/pub/geott/electoral/"
+# Download and extract the shapefiles
+for (year in years) {
+  this_shapefile <- paste0("data-raw/pd308.", year, ".zip")
+  if(file.exists(this_shapefile)) {
+    # Nothing to do
+  }  else {
+    download.file(paste0(base_url, year, "/pd308.", year, ".zip"), destfile = this_shapefile)
+    unzip(this_shapefile, exdir=paste0("data-raw/pd308.", year))
+  }
+  assign(paste0("poll_boundaries_", year), rgdal::readOGR(dsn = paste0("data-raw/pd308.", year),
+                                                        layer = ifelse(year == 2011, "pd_a", "pd308_a")) %>%
+           sp::spTransform(sp::CRS('+init=epsg:4326')))
+}
+rm(base_url, this_shapefile, year, years)
+# Census tracts
+if(file.exists("data-raw/gct_000b11a_e.zip")) {
+  # Nothing to do
+}  else {
+  download.file("http://www12.statcan.gc.ca/census-recensement/2011/geo/bound-limit/files-fichiers/gct_000b11a_e.zip",
+                destfile = "data-raw/gct_000b11a_e.zip")
+  unzip("data-raw/gct_000b11a_e.zip", exdir="data-raw/gct")
+}
+census_tracts <- rgdal::readOGR(dsn = "data-raw/gct", layer = "gct_000b11a_e") %>%
+  sp::spTransform(sp::CRS('+init=epsg:4326'))
+# Toronto Wards
+if(file.exists("data-raw/subdivisions_2010.zip")) {
+  # Nothing to do
+}  else {
+  download.file("http://opendata.toronto.ca/gcc/voting_subdivision_2010_wgs84.zip",
+                destfile = "data-raw/subdivisions_2010.zip")
+  unzip("data-raw/subdivisions_2010.zip", exdir="data-raw/to_wards")
+}
+wards <- rgdal::readOGR(dsn = "data-raw/to_wards", layer = "VOTING_SUBDIVISION_2010_WGS84") %>%
+  sp::spTransform(sp::CRS('+init=epsg:4326'))
+# Subset the CTs to just those in Toronto
+to_census_tracts <- census_tracts[wards,]
+# Subset polls to just those in Toronto
+to_poll_boundaries_2006 <- poll_boundaries_2006[wards,]
+to_poll_boundaries_2008 <- poll_boundaries_2008[wards,]
+to_poll_boundaries_2011 <- poll_boundaries_2011[wards,]
+rm(wards, poll_boundaries_2006, poll_boundaries_2008, poll_boundaries_2011, census_tracts)
 
-# saveRDS(poll_boundaries_2011, file = "data/poll_boundaries_2011.Rds")
-# poll_boundaries_2011 <- readRDS("data/poll_boundaries_2011.Rds")
+# Spatial aggregation -----------------------------------------------------
 
-# TODO: Can't get pd_p to import
-# poll_locations <- readOGR(dsn = "data-raw/pd308.2011", layer = "pd_p") %>%
-#   spTransform(CRS('+init=epsg:4326'))
-# rgdal::ogrListLayers("data-raw/pd308.2011/pd_p.shp")
-# rgdal::ogrInfo("data-raw/pd308.2011/pd_p.shp", "pd_p")
+# We need a column for each party for the aggregation
+library(dplyr)
+spread_votes <- fed_votes %>%
+  dplyr::select(year, district, poll, party, votes) %>%
+  tidyr::spread(party, votes)
+spread_votes$district <- as.numeric(spread_votes$district)
+spread_votes$poll <- as.numeric(spread_votes$poll)
+# Join votes to shapefiles, by district and poll numbers
+# Could use some refactoring here. Not sure how to use NSE with left_join
+to_poll_boundaries_2006@data <- dplyr::left_join(to_poll_boundaries_2006@data,
+                                          dplyr::filter(spread_votes, year == 2006),
+                                          by = c("PD_NUM" = "poll", "FED_NUM" = "district"))
+to_poll_boundaries_2006@data <- dplyr::select(to_poll_boundaries_2006@data, Other, Conservative, Liberal, NDP)
+to_poll_boundaries_2008@data <- dplyr::left_join(to_poll_boundaries_2008@data,
+                                          dplyr::filter(spread_votes, year == 2008),
+                                          by = c("PD_NUM" = "poll", "FED_NUM" = "district"))
+to_poll_boundaries_2008@data <- dplyr::select(to_poll_boundaries_2008@data, Other, Conservative, Liberal, NDP)
+to_poll_boundaries_2011@data <- dplyr::left_join(to_poll_boundaries_2011@data,
+                                          dplyr::filter(spread_votes, year == 2011),
+                                          by = c("PD_NUM" = "poll", "FED_NUM" = "district"))
+to_poll_boundaries_2011@data <- dplyr::select(to_poll_boundaries_2011@data, Other, Conservative, Liberal, NDP)
+# Consider merging these into a single Spatial object
+fed_votes_2006_geo <- sp::aggregate(x = to_poll_boundaries_2006, by = to_census_tracts, FUN = sum, na.rm = TRUE, areaWeighted = TRUE)
+fed_votes_2008_geo <- sp::aggregate(x = to_poll_boundaries_2008, by = to_census_tracts, FUN = sum, na.rm = TRUE, areaWeighted = TRUE)
+fed_votes_2011_geo <- sp::aggregate(x = to_poll_boundaries_2011, by = to_census_tracts, FUN = sum, na.rm = TRUE, areaWeighted = TRUE)
 
-# Find the ec_ids for Toronto Electoral Districts
-ec_id <- dplyr::data_frame(id = poll_boundaries_2011@data$PD_ID,
-                           district = poll_boundaries_2011@data$FED_NUM,
-                           poll = poll_boundaries_2011@data$PD_NUM) %>%
-  filter(district %in% to_fed_districts)
-# Just 2011 votes for the 2011 shapefile
-fed_votes_2011 <- dplyr::ungroup(fed_votes) %>%
-  mutate(district = as.integer(district),
-         poll = as.integer(poll)) %>%
-  dplyr::filter(year == 2011)
-# Add ec_id to the vote data
-fed_votes_2011 <- dplyr::left_join(fed_votes_2011, ec_id)
-geo_votes_2011 <- ggplot2::fortify(poll_boundaries_2011, region="PD_ID")
-# Just the TO ec_ids
-geo_votes_2011 <- dplyr::filter(geo_votes_2011, id %in% ec_id$id)
-# saveRDS(geo_votes_2011, file = "data/geo_votes_2011.Rds")
-# geo_votes_2011 <- readRDS("data/geo_votes_2011.Rds")
-
-# Plot the map
-ggplot(fed_votes_2011, aes(map_id = id)) +
-  geom_map(aes(fill = cut_interval(prop_votes,length = 0.15)), map = geo_votes_2011) +
-  scale_fill_brewer("Proportion of votes", labels=c("Low", rep("",5), "High"), palette = "Oranges") +
-  labs(x="", y="", title="2011 Federal General Election") +
-  theme(axis.ticks.y = element_blank(), axis.text.y = element_blank(), # get rid of x ticks/text
-        axis.ticks.x = element_blank(), axis.text.x = element_blank(), # get rid of y ticks/text
-        plot.title = element_text(lineheight=.8, face="bold", vjust=1)) + # make title bold and add space
-  expand_limits(x = geo_votes_2011$long, y = geo_votes_2011$lat) +
-  facet_wrap(~party, as.table = FALSE)
-ggsave("2011_prop_votes.png", scale = 1, dpi = 200)
-
-# Getting clipping with this approach
-fed_votes_2011$id <- as.character(fed_votes_2011$id)
-test <- dplyr::left_join(geo_votes_2011, fed_votes_2011)
-toronto_map <- qmap("toronto", zoom = 11, maptype = 'terrain')
-toronto_map +
-  geom_polygon(aes(x=long, y=lat, group=group, fill = cut_interval(prop_votes,length = 0.15)), alpha = 5/6, data=test) +
-  scale_fill_brewer("Proportion of votes") +
-  labs(x="", y="", title="Votes cast by poll in the 2011 Federal election") +
-  theme(axis.ticks.y = element_blank(), axis.text.y = element_blank(), # get rid of x ticks/text
-        axis.ticks.x = element_blank(), axis.text.x = element_blank(), # get rid of y ticks/text
-        plot.title = element_text(lineheight=.8, face="bold", vjust=1)) + # make title bold and add space
-  facet_wrap(~party)
+devtools::use_data(fed_votes_2006_geo, fed_votes_2008_geo, fed_votes_2011_geo,
+                   to_poll_boundaries_2006, to_poll_boundaries_2008, to_poll_boundaries_2011)
