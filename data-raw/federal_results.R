@@ -190,9 +190,12 @@ to_poll_boundaries_2011@data <- dplyr::left_join(to_poll_boundaries_2011@data,
                                           by = c("PD_NUM" = "poll", "FED_NUM" = "district"))
 to_poll_boundaries_2011@data <- dplyr::select(to_poll_boundaries_2011@data, Other, Conservative, Liberal, NDP)
 # Consider merging these into a single Spatial object
-fed_votes_2006_geo <- sp::aggregate(x = to_poll_boundaries_2006, by = to_census_tracts, FUN = sum, na.rm = TRUE, areaWeighted = TRUE)
-fed_votes_2008_geo <- sp::aggregate(x = to_poll_boundaries_2008, by = to_census_tracts, FUN = sum, na.rm = TRUE, areaWeighted = TRUE)
-fed_votes_2011_geo <- sp::aggregate(x = to_poll_boundaries_2011, by = to_census_tracts, FUN = sum, na.rm = TRUE, areaWeighted = TRUE)
+fed_votes_2006_geo <- aggregate(x = to_poll_boundaries_2006, by = to_census_tracts, FUN = sum, na.rm = TRUE, areaWeighted = TRUE)
+fed_votes_2006_geo$id <- to_census_tracts$CTUID
+fed_votes_2008_geo <- aggregate(x = to_poll_boundaries_2008, by = to_census_tracts, FUN = sum, na.rm = TRUE, areaWeighted = TRUE)
+fed_votes_2008_geo$id <- to_census_tracts$CTUID
+fed_votes_2011_geo <- aggregate(x = to_poll_boundaries_2011, by = to_census_tracts, FUN = sum, na.rm = TRUE, areaWeighted = TRUE)
+fed_votes_2011_geo$id <- to_census_tracts$CTUID
 
 devtools::use_data(fed_votes_2006_geo, fed_votes_2008_geo, fed_votes_2011_geo,
-                   to_poll_boundaries_2006, to_poll_boundaries_2008, to_poll_boundaries_2011)
+                   to_poll_boundaries_2006, to_poll_boundaries_2008, to_poll_boundaries_2011, overwrite = TRUE)
