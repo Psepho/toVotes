@@ -199,3 +199,64 @@ fed_votes_2011_geo$id <- to_census_tracts$CTUID
 
 devtools::use_data(fed_votes_2006_geo, fed_votes_2008_geo, fed_votes_2011_geo,
                    to_poll_boundaries_2006, to_poll_boundaries_2008, to_poll_boundaries_2011, overwrite = TRUE)
+
+
+# Candidate attributes ----------------------------------------------------
+
+library(dplyr)
+spread_star_candidate <- candidates %>%
+  dplyr::select(year, district, poll, party, star_candidate) %>%
+  tidyr::spread(party, star_candidate)
+spread_star_candidate$district <- as.numeric(spread_star_candidate$district)
+spread_star_candidate$poll <- as.numeric(spread_star_candidate$poll)
+names(spread_star_candidate)[4:7] <- stringr::str_c(names(spread_star_candidate)[4:7], "star-candidate", sep = "_")
+spread_incumbent <- candidates %>%
+  dplyr::select(year, district, poll, party, incumbent) %>%
+  tidyr::spread(party, incumbent)
+spread_incumbent$district <- as.numeric(spread_incumbent$district)
+spread_incumbent$poll <- as.numeric(spread_incumbent$poll)
+names(spread_incumbent)[4:7] <- stringr::str_c(names(spread_incumbent)[4:7], "incumbent", sep = "_")
+candidate_attr <- dplyr::left_join(spread_incumbent, spread_star_candidate)
+# 2006
+candidate_attr_2006 <- to_poll_boundaries_2006
+candidate_attr_2006@data <- dplyr::left_join(to_poll_boundaries_2006@data,
+                                             dplyr::filter(candidate_attr, year == 2006),
+                                             by = c("PD_NUM" = "poll", "FED_NUM" = "district"))
+candidate_attr_2006@data <- dplyr::select(candidate_attr_2006@data, 9:16)
+candidate_attr_2006 <- aggregate(x = candidate_attr_2006, by = to_census_tracts, FUN = max, na.rm = TRUE)
+candidate_attr_2006$id <- to_census_tracts$CTUID
+# 2008
+candidate_attr_2008 <- to_poll_boundaries_2008
+candidate_attr_2008@data <- dplyr::left_join(to_poll_boundaries_2008@data,
+                                             dplyr::filter(candidate_attr, year == 2008),
+                                             by = c("PD_NUM" = "poll", "FED_NUM" = "district"))
+candidate_attr_2008@data <- dplyr::select(candidate_attr_2008@data, 17:24)
+candidate_attr_2008 <- aggregate(x = candidate_attr_2008, by = to_census_tracts, FUN = max, na.rm = TRUE)
+candidate_attr_2008$id <- to_census_tracts$CTUID
+# 2011
+candidate_attr_2011 <- to_poll_boundaries_2011
+candidate_attr_2011@data <- dplyr::left_join(to_poll_boundaries_2011@data,
+                                             dplyr::filter(candidate_attr, year == 2011),
+                                             by = c("PD_NUM" = "poll", "FED_NUM" = "district"))
+candidate_attr_2011@data <- dplyr::select(candidate_attr_2011@data, 18:25)
+candidate_attr_2011 <- aggregate(x = candidate_attr_2011, by = to_census_tracts, FUN = max, na.rm = TRUE)
+candidate_attr_2011$id <- to_census_tracts$CTUID
+# Combine
+candidate_attr_2006@data$year <- 2006
+candidate_attr_2008@data$year <- 2008
+candidate_attr_2011@data$year <- 2011
+candidate_attr <- dplyr::bind_rows(candidate_attr_2006@data,
+                                   candidate_attr_2008@data,
+                                   candidate_attr_2011@data)
+candidate_star <- candidate_attr[,-(1:4)]
+names(candidate_star)[1:4] <- c("Other", "Conservative", "Liberal", "NDP")
+candidate_incumbent <- candidate_attr[,c(1:4,9:10)]
+names(candidate_incumbent)[1:4] <- c("Other", "Conservative", "Liberal", "NDP")
+candidate_star <- tidyr::gather(candidate_star, party, star_candidate, 1:4) %>%
+  dplyr::mutate(star_candidate = ifelse(star_candidate == 1, 1, 0))
+candidate_incumbent <- tidyr::gather(candidate_incumbent, party, incumbent, 1:4) %>%
+  dplyr::mutate(incumbent = ifelse(incumbent == 1, 1, 0))
+candidate_attr <- dplyr::left_join(candidate_incumbent, candidate_star)
+devtools::use_data(candidate_attr, overwrite = TRUE)
+rm(candidate_incumbent, candidate_star, candidate_attr_2011, candidate_attr_2008, candidate_attr_2006)
+rm(spread_incumbent, spread_star_candidate)

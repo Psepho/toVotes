@@ -132,3 +132,11 @@ NULL
 #' @source \url{http://www.elections.ca}
 #' @name to_poll_boundaries_2011
 NULL
+#' Attributes of candidates, aggregated to census tracts.
+#'
+#' Incumbency and star candiate status by census tract.
+#' Values are aggreagated from the federal poll boundary files
+#'
+#' @format A dataframe with 6,948 observations of five variables
+#' @name candidate_attr
+NULL
