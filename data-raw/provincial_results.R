@@ -17,13 +17,16 @@ poll_data <- list.files(path = "data-raw/pollresults/", pattern = file_pattern, 
   purrr::map_df(readxl::read_excel, sheet = 1, col_types = "text", .id = "file") %>%   # Import each file and merge into a dataframe
   # Specifying sheet = 1 just to be clear we're ignoring the rest of the sheets
   # Declare col_types since there are duplicate surnames and map_df can't recast column types in the rbind
-  dplyr::filter(!is.na(URBAN)) %>% # Using the URBAN column to filter out rows that don't contain results
-  dplyr::rename(poll_number = `POLL NO.`,
-                turnout = `TOTAL VOTER TURNOUT`) %>%
   dplyr::select(-starts_with("X__")) %>% # Drop all of the blank columns
-  dplyr::select(1:2,13,4:9,14:dim(poll_data)[2]) # Reorganize a bit and drop unneeded columns
+  dplyr::select(1:2,4:8,15:dim(.)[2]) %>% # Reorganize a bit and drop unneeded columns
+  dplyr::rename(poll_number = `POLL NO.`) %>%
+  tidyr::gather(candidate, votes, -file, -poll_number) %>% # Convert to a long table
+  dplyr::filter(!is.na(votes),
+                poll_number != "Totals") %>%
+  dplyr::mutate(electoral_district = stringr::str_extract(file, "[[:digit:]]{3}"),
+                votes = as.numeric(votes)) %>%
+  dplyr::select(-file)
 poll_data
-#TODO: gather into names and votes
 #TODO: match names to political parties
 
 #bell 063 014
