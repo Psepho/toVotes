@@ -25,7 +25,9 @@ electoral_districts <- xml2::read_html(ed_webpage) %>%
   rvest::html_text() %>%
   .[-1] %>% # Drop the first item on the list
   tibble::as.tibble() %>% # Convert to a data frame and split into ID number and name
-  tidyr::separate(value, c("electoral_district", "electoral_district_name"), sep = " ")
+  tidyr::separate(value, c("electoral_district", "electoral_district_name"),
+                  sep = " ",
+                  extra = "merge")
 
 # Extract votes -----------------------------------------------------------
 
