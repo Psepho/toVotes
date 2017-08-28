@@ -8,8 +8,8 @@ if(file.exists(zip_file)) { # Only download the data once
   download.file(raw_results_file,
                 destfile = zip_file)
   unzip(zip_file, exdir="data-raw") # Extract the data into data-raw
+  file.rename("data-raw/GE Results - 2014 (unconverted)", "data-raw/pollresults")
 }
-file.rename("data-raw/GE Results - 2014 (unconverted)", "data-raw/pollresults")
 
 # Electoral districts -----------------------------------------------------
 
