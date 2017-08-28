@@ -28,5 +28,7 @@ poll_data <- list.files(path = "data-raw/pollresults/", pattern = file_pattern, 
   dplyr::select(-file)
 poll_data
 #TODO: match names to political parties
+#TODO: find electoral district names
+#       https://www3.elections.on.ca/internetapp/FYED_Error.aspx?lang=en-ca div:ddlElectoralDistricts
 
 #bell 063 014
