@@ -1,4 +1,5 @@
 library(tidyverse)
+library(magrittr)
 raw_results_file <- "http://www.elections.on.ca/content/dam/NGW/sitecontent/2017/results/Poll%20by%20Poll%20Results%20-%20Excel.zip"
 
 zip_file <- "data-raw/Poll%20by%20Poll%20Results%20-%20Excel.zip"
@@ -51,4 +52,36 @@ poll_data <- list.files(path = "data-raw/pollresults/", pattern = file_pattern, 
   dplyr::left_join(electoral_districts)
 poll_data
 
-#TODO: match names to political parties
+
+# Candidate parties -------------------------------------------------------
+
+#TODO: Join party affiliations to votes, will need to match surnames to full names and fix district names
+
+candidate_webpage <- "https://en.wikipedia.org/wiki/Ontario_general_election,_2014#Candidates_by_region"
+candidate_tables <- "table" # Use an xpath selector to get the drop down list by ID
+
+candidates <- xml2::read_html(candidate_webpage) %>%
+  rvest::html_nodes(candidate_tables) %>% # Pull tables from the wikipedia entry
+  .[13:25] %>% # Drop unecessary tables
+  rvest::html_table(fill = TRUE)
+
+# Setup empty dataframe to store results
+candidate_parties <- tibble::as_tibble(
+  electoral_district_name = NULL,
+  party = NULL,
+  candidate = NULL
+)
+
+for(i in seq_along(1:length(candidates))) { # Messy, but works
+  this <- candidates[[i]]
+  # The header spans mess up the header row, so renaming
+  names(this) <- this[1,-c(3,4)]
+  # Get rid of the blank spacer columns
+  this <- this[-1, c(1,3,5,7,9,11,13)]
+  this %<>%
+    tidyr::gather(party, candidate, -`Electoral District`) %>%
+    dplyr::rename(electoral_district_name = `Electoral District`)
+  candidate_parties <- dplyr::bind_rows(candidate_parties, this)
+}
+candidate_parties %<>% # The sixth table has one less column, this clears the extra column added
+  dplyr::filter(!is.na(party))
