@@ -34,8 +34,8 @@ electoral_districts <- xml2::read_html(ed_webpage) %>%
 
 
 file_pattern <- "*_[[:digit:]]{3}.xls" # Can use this to filter down to specific files
-poll_data <- list.files(path = "data-raw/pollresults/", pattern = file_pattern, full.names = TRUE) %>% # Find all files that match the pattern
-  set_names() %>%
+poll_data <- list.files(path = "data-raw/pollresults", pattern = file_pattern, full.names = TRUE) %>% # Find all files that match the pattern
+  purrr::set_names() %>%
   purrr::map_df(readxl::read_excel, sheet = 1, col_types = "text", .id = "file") %>%   # Import each file and merge into a dataframe
   # Specifying sheet = 1 just to be clear we're ignoring the rest of the sheets
   # Declare col_types since there are duplicate surnames and map_df can't recast column types in the rbind
