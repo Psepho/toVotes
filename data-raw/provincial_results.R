@@ -82,7 +82,7 @@ for(i in seq_along(1:length(candidates))) { # Messy, but works
   # Get rid of the blank spacer columns
   this <- this[-1, ]
   # Drop the NA columns by keeping only odd columns
-  this <- this[,seq(1, length.out=dim(this)[2]/2, by = 2)]
+  this <- this[,seq(from = 1, to = dim(this)[2], by = 2)]
   this %<>%
     tidyr::gather(party, candidate, -`Electoral District`) %>%
     dplyr::rename(electoral_district_name = `Electoral District`) %>%
