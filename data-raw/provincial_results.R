@@ -56,6 +56,9 @@ poll_data
 # Candidate parties -------------------------------------------------------
 
 #TODO: Join party affiliations to votes, will need to match surnames to full names and fix district names
+# poll_data < candidate_parties by surname and electoral district
+# harmonize electoral district names
+# match on surname
 
 candidate_webpage <- "https://en.wikipedia.org/wiki/Ontario_general_election,_2014#Candidates_by_region"
 candidate_tables <- "table" # Use an xpath selector to get the drop down list by ID
@@ -75,13 +78,14 @@ candidate_parties <- tibble::as_tibble(
 for(i in seq_along(1:length(candidates))) { # Messy, but works
   this <- candidates[[i]]
   # The header spans mess up the header row, so renaming
-  names(this) <- this[1,-c(3,4)]
+  names(this) <- c(this[1,-c(3,4)], "NA", "Incumbent")
   # Get rid of the blank spacer columns
-  this <- this[-1, c(1,3,5,7,9,11,13)]
+  this <- this[-1, ]
+  # Drop the NA columns by keeping only odd columns
+  this <- this[,seq(1, length.out=dim(this)[2]/2, by = 2)]
   this %<>%
     tidyr::gather(party, candidate, -`Electoral District`) %>%
-    dplyr::rename(electoral_district_name = `Electoral District`)
+    dplyr::rename(electoral_district_name = `Electoral District`) %>%
+    dplyr::filter(party != "Incumbent")
   candidate_parties <- dplyr::bind_rows(candidate_parties, this)
 }
-candidate_parties %<>% # The sixth table has one less column, this clears the extra column added
-  dplyr::filter(!is.na(party))
