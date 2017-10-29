@@ -28,7 +28,10 @@ electoral_districts <- xml2::read_html(ed_webpage) %>%
   tibble::as.tibble() %>% # Convert to a data frame and split into ID number and name
   tidyr::separate(value, c("electoral_district", "electoral_district_name"),
                   sep = " ",
-                  extra = "merge")
+                  extra = "merge") %>%
+  # Clean up district names for later matching and presentation
+  dplyr::mutate(electoral_district_name = stringr::str_to_title(
+    stringr::str_replace_all(electoral_district_name, "--", "—")))
 
 # Extract votes -----------------------------------------------------------
 
@@ -81,12 +84,24 @@ for(i in seq_along(1:length(candidates))) { # Messy, but works
     dplyr::filter(party != "Incumbent")
   candidate_parties <- dplyr::bind_rows(candidate_parties, this)
 }
-rm(this)
+rm(this, i)
 
-#TODO: Join party affiliations to votes, will need to match surnames to full names and fix district names
-# poll_data < candidate_parties by surname and electoral district
-# harmonize electoral district names
-# match on surname
+# Join electoral district numbers into the candidate and parties data
 
-electoral_districts %>%
-  fuzzyjoin::stringdist_left_join(candidate_parties, ignore_case = TRUE)
+candidate_parties %<>%
+  # These three lines are cleaning up hyphens and dashes, seems overly complicated
+  dplyr::mutate(electoral_district_name = stringr::str_replace_all(electoral_district_name, "—\n", "—")) %>%
+  dplyr::mutate(electoral_district_name = stringr::str_replace_all(electoral_district_name,
+                                                                   "Chatham-Kent—Essex",
+                                                                   "Chatham—Kent—Essex")) %>%
+  dplyr::mutate(electoral_district_name = stringr::str_to_title(electoral_district_name)) %>%
+  dplyr::left_join(electoral_districts) %>%
+  dplyr::filter(!candidate == "")
+#   tidyr::separate(candidate, into = c("first","candidate"), extra = "merge", remove = TRUE)
+
+poll_data %>% # Join candidate parties into the poll data
+  fuzzyjoin::stringdist_left_join(candidate_parties,
+                                  ignore_case = TRUE,
+                                  # max_dist = 6,
+                                  by = list( x = c("electoral_district", "candidate"),
+                                             y = c("electoral_district", "candidate")))
