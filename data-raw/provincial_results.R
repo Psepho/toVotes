@@ -32,7 +32,6 @@ electoral_districts <- xml2::read_html(ed_webpage) %>%
 
 # Extract votes -----------------------------------------------------------
 
-
 file_pattern <- "*_[[:digit:]]{3}.xls" # Can use this to filter down to specific files
 poll_data <- list.files(path = "data-raw/pollresults", pattern = file_pattern, full.names = TRUE) %>% # Find all files that match the pattern
   purrr::set_names() %>%
@@ -50,15 +49,8 @@ poll_data <- list.files(path = "data-raw/pollresults", pattern = file_pattern, f
                 votes = as.numeric(votes)) %>%
   dplyr::select(-file) %>%
   dplyr::left_join(electoral_districts)
-poll_data
-
 
 # Candidate parties -------------------------------------------------------
-
-#TODO: Join party affiliations to votes, will need to match surnames to full names and fix district names
-# poll_data < candidate_parties by surname and electoral district
-# harmonize electoral district names
-# match on surname
 
 candidate_webpage <- "https://en.wikipedia.org/wiki/Ontario_general_election,_2014#Candidates_by_region"
 candidate_tables <- "table" # Use an xpath selector to get the drop down list by ID
@@ -89,3 +81,12 @@ for(i in seq_along(1:length(candidates))) { # Messy, but works
     dplyr::filter(party != "Incumbent")
   candidate_parties <- dplyr::bind_rows(candidate_parties, this)
 }
+rm(this)
+
+#TODO: Join party affiliations to votes, will need to match surnames to full names and fix district names
+# poll_data < candidate_parties by surname and electoral district
+# harmonize electoral district names
+# match on surname
+
+electoral_districts %>%
+  fuzzyjoin::stringdist_left_join(candidate_parties, ignore_case = TRUE)
