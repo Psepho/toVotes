@@ -96,12 +96,11 @@ candidate_parties %<>%
                                                                    "Chatham—Kent—Essex")) %>%
   dplyr::mutate(electoral_district_name = stringr::str_to_title(electoral_district_name)) %>%
   dplyr::left_join(electoral_districts) %>%
-  dplyr::filter(!candidate == "")
-#   tidyr::separate(candidate, into = c("first","candidate"), extra = "merge", remove = TRUE)
+  dplyr::filter(!candidate == "") %>%
+  tidyr::separate(candidate, into = c("first","candidate"), extra = "merge", remove = TRUE)
 
-poll_data %>% # Join candidate parties into the poll data
+test <- poll_data %>% # Join candidate parties into the poll data
   fuzzyjoin::stringdist_left_join(candidate_parties,
                                   ignore_case = TRUE,
-                                  # max_dist = 6,
                                   by = list( x = c("electoral_district", "candidate"),
                                              y = c("electoral_district", "candidate")))
