@@ -99,8 +99,16 @@ candidate_parties %<>%
   dplyr::filter(!candidate == "") %>%
   tidyr::separate(candidate, into = c("first","candidate"), extra = "merge", remove = TRUE)
 
-test <- poll_data %>% # Join candidate parties into the poll data
+poll_data_party_match_table <- poll_data %>%
+  group_by(candidate, electoral_district_name) %>%
+  summarise() %>%
   fuzzyjoin::stringdist_left_join(candidate_parties,
-                                  ignore_case = TRUE,
-                                  by = list( x = c("electoral_district", "candidate"),
-                                             y = c("electoral_district", "candidate")))
+                                  ignore_case = TRUE) %>%
+  dplyr::select(candidate = candidate.x,
+                # electoral_district_name = electoral_district_name.x,
+                party = party,
+                electoral_district = electoral_district) %>%
+  dplyr::filter(!is.na(party))
+
+poll_data %<>%
+  dplyr::left_join(poll_data_party_match_table)
