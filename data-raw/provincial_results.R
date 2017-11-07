@@ -30,8 +30,8 @@ electoral_districts <- xml2::read_html(ed_webpage) %>%
                   sep = " ",
                   extra = "merge") %>%
   # Clean up district names for later matching and presentation
-  dplyr::mutate(electoral_district_name = stringr::str_to_title(
-    stringr::str_replace_all(electoral_district_name, "--", "—")))
+  dplyr::mutate(electoral_district_name = utf8::as_utf8(stringr::str_to_title(
+    stringr::str_replace_all(electoral_district_name, "--", "—"))))
 
 # Extract votes -----------------------------------------------------------
 
@@ -94,7 +94,7 @@ candidate_parties %<>%
   dplyr::mutate(electoral_district_name = stringr::str_replace_all(electoral_district_name,
                                                                    "Chatham-Kent—Essex",
                                                                    "Chatham—Kent—Essex")) %>%
-  dplyr::mutate(electoral_district_name = stringr::str_to_title(electoral_district_name)) %>%
+  dplyr::mutate(electoral_district_name = utf8::as_utf8(stringr::str_to_title(electoral_district_name))) %>%
   dplyr::left_join(electoral_districts) %>%
   dplyr::filter(!candidate == "") %>%
   tidyr::separate(candidate, into = c("first","candidate"), extra = "merge", remove = TRUE)
@@ -112,3 +112,4 @@ poll_data_party_match_table <- poll_data %>%
 
 poll_data %<>%
   dplyr::left_join(poll_data_party_match_table)
+
