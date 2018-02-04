@@ -60,7 +60,7 @@ candidate_tables <- "table" # Use an xpath selector to get the drop down list by
 
 candidates <- xml2::read_html(candidate_webpage) %>%
   rvest::html_nodes(candidate_tables) %>% # Pull tables from the wikipedia entry
-  .[13:25] %>% # Drop unecessary tables
+  .[14:26] %>% # Drop unecessary tables
   rvest::html_table(fill = TRUE)
 
 # Setup empty dataframe to store results
