@@ -10,4 +10,4 @@ data-raw/pd308*
 data-raw/*.zip
 data-raw/to_wards
 data-raw/gct
-data-raw/shapefile
+data-raw/prov_shapefile

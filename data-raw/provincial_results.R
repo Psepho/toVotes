@@ -113,3 +113,45 @@ poll_data_party_match_table <- poll_data %>%
 poll_data %<>%
   dplyr::left_join(poll_data_party_match_table)
 
+
+# Geocoding ---------------------------------------------------------------
+
+# TODO: Geocode provincial results
+# TODO: Subset provincial results to TO wards
+# TODO: Aggregate provincial results into Census Tracts
+# TODO: Extract Electoral District names and numbers to replace approach from above
+
+library(sp)
+
+# Provincial election shapefiles are listed here: https://www.elections.on.ca/en/voting-in-ontario/electoral-district-shapefiles/limited-use-data-product-licence-agreement/download-shapefiles.html
+# POLL_DIV_1, POLL_DIV_3 are the poll division number (integer and three-character forms)
+# ED_ID, DATA_COMPI are the Electoral District number (integer and three-character forms)
+# KPI04 is the Electoral District _name_, as used on the WikiPedia election page
+
+base_shapefile_url <- "https://www.elections.on.ca/content/dam/NGW/sitecontent/2016/preo/shapefiles/"
+pd_shapefile <- "Polling%20Division%20Shapefile%20-%202014%20General%20Election.zip"
+
+# Download and extract the shapefiles
+this_shapefile <- paste0("data-raw/", pd_shapefile)
+if(file.exists(this_shapefile)) {
+  # Nothing to do
+}  else {
+  download.file(paste0(base_shapefile_url, pd_shapefile), destfile = this_shapefile)
+  unzip(this_shapefile, exdir="data-raw/prov_shapefile")
+}
+
+prov_geo <- sf::st_read("data-raw/prov_shapefile", layer = "PDs_Ontario") %>%
+  sf::st_transform(crs = "+init=epsg:4326")
+
+# Census tracts
+if(file.exists("data-raw/gct_000b11a_e.zip")) {
+  # Nothing to do
+}  else {
+  download.file("http://www12.statcan.gc.ca/census-recensement/2011/geo/bound-limit/files-fichiers/gct_000b11a_e.zip",
+                destfile = "data-raw/gct_000b11a_e.zip")
+  unzip("data-raw/gct_000b11a_e.zip", exdir="data-raw/gct")
+}
+census_tracts <- rgdal::readOGR(dsn = "data-raw/gct", layer = "gct_000b11a_e") %>%
+  sp::spTransform(sp::CRS('+init=epsg:4326'))
+
+http://opendata.toronto.ca/gcc/voting_location_2014_wgs84.zip
