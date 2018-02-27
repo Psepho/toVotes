@@ -64,28 +64,6 @@ if(file.exists(zip_file)) { # Only download the data once
   file.rename("data-raw/GE Results - 2014 (unconverted)", "data-raw/pollresults")
 }
 
-# Electoral districts -----------------------------------------------------
-
-# Pull the names of the electoral districts from the "Find My Electoral District" website
-# Didn't find any relevant resources on the Elections Ontario website
-# Now accomplished above from the shapefile
-
-# ed_webpage <- "https://www3.elections.on.ca/internetapp/FYED_Error.aspx?lang=en-ca"
-# ed_xpath <- "//*[(@id = \"ddlElectoralDistricts\")]" # Use an xpath selector to get the drop down list by ID
-#
-# electoral_districts <- xml2::read_html(ed_webpage) %>%
-#   rvest::html_node(xpath = ed_xpath) %>%
-#   rvest::html_nodes("option") %>%
-#   rvest::html_text() %>%
-#   .[-1] %>% # Drop the first item on the list
-#   tibble::as.tibble() %>% # Convert to a data frame and split into ID number and name
-#   tidyr::separate(value, c("electoral_district", "electoral_district_name"),
-#                   sep = " ",
-#                   extra = "merge") %>%
-#   # Clean up district names for later matching and presentation
-#   dplyr::mutate(electoral_district_name = utf8::as_utf8(stringr::str_to_title(
-#     stringr::str_replace_all(electoral_district_name, "--", "—"))))
-
 # Extract votes -----------------------------------------------------------
 
 file_pattern <- "*_[[:digit:]]{3}.xls" # Can use this to filter down to specific files
