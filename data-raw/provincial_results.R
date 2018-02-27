@@ -1,5 +1,57 @@
 library(tidyverse)
 library(magrittr)
+library(sp)
+
+# Geocoding ---------------------------------------------------------------
+
+# TODO: Geocode provincial results
+# TODO: Subset provincial results to TO wards
+# TODO: Aggregate provincial results into Census Tracts
+
+# Provincial election shapefiles are listed here: https://www.elections.on.ca/en/voting-in-ontario/electoral-district-shapefiles/limited-use-data-product-licence-agreement/download-shapefiles.html
+# POLL_DIV_1, POLL_DIV_3 are the poll division number (integer and three-character forms)
+# ED_ID, DATA_COMPI are the Electoral District number (integer and three-character forms)
+# KPI04 is the Electoral District _name_, as used on the WikiPedia election page
+
+base_shapefile_url <- "https://www.elections.on.ca/content/dam/NGW/sitecontent/2016/preo/shapefiles/"
+pd_shapefile <- "Polling%20Division%20Shapefile%20-%202014%20General%20Election.zip"
+
+# Download and extract the provincial shapefile
+prov_shapefile <- paste0("data-raw/", prov_shapefile)
+if(file.exists(prov_shapefile)) {
+  # Nothing to do
+}  else {
+  download.file(paste0(base_shapefile_url, pd_shapefile), destfile = prov_shapefile)
+  unzip(prov_shapefile, exdir="data-raw/prov_shapefile")
+}
+prov_geo <- sf::st_read("data-raw/prov_shapefile", layer = "PDs_Ontario") %>%
+  sf::st_transform(crs = "+init=epsg:4326")
+
+# Need electoral district names and numbers to match with party affiliations below
+electoral_districts <- prov_geo %>%
+  dplyr::transmute(electoral_district = as.character(DATA_COMPI),
+                   electoral_district_name = stringr::str_to_title(KPI04)) %>%
+  dplyr::group_by(electoral_district, electoral_district_name) %>%
+  dplyr::count() %>%
+  dplyr::ungroup() %>%
+  dplyr::mutate(electoral_district_name = stringr::str_replace_all(utf8::as_utf8(electoral_district_name), "\u0097", " ")) %>%
+  dplyr::select(electoral_district, electoral_district_name)
+
+# Census tracts
+if(file.exists("data-raw/gct_000b11a_e.zip")) {
+  # Nothing to do
+}  else {
+  download.file("http://www12.statcan.gc.ca/census-recensement/2011/geo/bound-limit/files-fichiers/gct_000b11a_e.zip",
+                destfile = "data-raw/gct_000b11a_e.zip")
+  unzip("data-raw/gct_000b11a_e.zip", exdir="data-raw/gct")
+}
+census_tracts <- rgdal::readOGR(dsn = "data-raw/gct", layer = "gct_000b11a_e") %>%
+  sp::spTransform(sp::CRS('+init=epsg:4326'))
+
+http://opendata.toronto.ca/gcc/voting_location_2014_wgs84.zip
+
+# Download raw data -------------------------------------------------------
+
 raw_results_file <- "http://www.elections.on.ca/content/dam/NGW/sitecontent/2017/results/Poll%20by%20Poll%20Results%20-%20Excel.zip"
 
 zip_file <- "data-raw/Poll%20by%20Poll%20Results%20-%20Excel.zip"
@@ -16,22 +68,23 @@ if(file.exists(zip_file)) { # Only download the data once
 
 # Pull the names of the electoral districts from the "Find My Electoral District" website
 # Didn't find any relevant resources on the Elections Ontario website
+# Now accomplished above from the shapefile
 
-ed_webpage <- "https://www3.elections.on.ca/internetapp/FYED_Error.aspx?lang=en-ca"
-ed_xpath <- "//*[(@id = \"ddlElectoralDistricts\")]" # Use an xpath selector to get the drop down list by ID
-
-electoral_districts <- xml2::read_html(ed_webpage) %>%
-  rvest::html_node(xpath = ed_xpath) %>%
-  rvest::html_nodes("option") %>%
-  rvest::html_text() %>%
-  .[-1] %>% # Drop the first item on the list
-  tibble::as.tibble() %>% # Convert to a data frame and split into ID number and name
-  tidyr::separate(value, c("electoral_district", "electoral_district_name"),
-                  sep = " ",
-                  extra = "merge") %>%
-  # Clean up district names for later matching and presentation
-  dplyr::mutate(electoral_district_name = utf8::as_utf8(stringr::str_to_title(
-    stringr::str_replace_all(electoral_district_name, "--", "—"))))
+# ed_webpage <- "https://www3.elections.on.ca/internetapp/FYED_Error.aspx?lang=en-ca"
+# ed_xpath <- "//*[(@id = \"ddlElectoralDistricts\")]" # Use an xpath selector to get the drop down list by ID
+#
+# electoral_districts <- xml2::read_html(ed_webpage) %>%
+#   rvest::html_node(xpath = ed_xpath) %>%
+#   rvest::html_nodes("option") %>%
+#   rvest::html_text() %>%
+#   .[-1] %>% # Drop the first item on the list
+#   tibble::as.tibble() %>% # Convert to a data frame and split into ID number and name
+#   tidyr::separate(value, c("electoral_district", "electoral_district_name"),
+#                   sep = " ",
+#                   extra = "merge") %>%
+#   # Clean up district names for later matching and presentation
+#   dplyr::mutate(electoral_district_name = utf8::as_utf8(stringr::str_to_title(
+#     stringr::str_replace_all(electoral_district_name, "--", "—"))))
 
 # Extract votes -----------------------------------------------------------
 
@@ -60,7 +113,7 @@ candidate_tables <- "table" # Use an xpath selector to get the drop down list by
 
 candidates <- xml2::read_html(candidate_webpage) %>%
   rvest::html_nodes(candidate_tables) %>% # Pull tables from the wikipedia entry
-  .[14:26] %>% # Drop unecessary tables
+  .[16:28] %>% # Drop unecessary tables
   rvest::html_table(fill = TRUE)
 
 # Setup empty dataframe to store results
@@ -89,12 +142,7 @@ rm(this, i)
 # Join electoral district numbers into the candidate and parties data
 
 candidate_parties %<>%
-  # These three lines are cleaning up hyphens and dashes, seems overly complicated
-  dplyr::mutate(electoral_district_name = stringr::str_replace_all(electoral_district_name, "—\n", "—")) %>%
-  dplyr::mutate(electoral_district_name = stringr::str_replace_all(electoral_district_name,
-                                                                   "Chatham-Kent—Essex",
-                                                                   "Chatham—Kent—Essex")) %>%
-  dplyr::mutate(electoral_district_name = utf8::as_utf8(stringr::str_to_title(electoral_district_name))) %>%
+  dplyr::mutate(electoral_district_name = stringr::str_replace_all(electoral_district_name, "—", " ")) %>%
   dplyr::left_join(electoral_districts) %>%
   dplyr::filter(!candidate == "") %>%
   tidyr::separate(candidate, into = c("first","candidate"), extra = "merge", remove = TRUE)
@@ -112,46 +160,3 @@ poll_data_party_match_table <- poll_data %>%
 
 poll_data %<>%
   dplyr::left_join(poll_data_party_match_table)
-
-
-# Geocoding ---------------------------------------------------------------
-
-# TODO: Geocode provincial results
-# TODO: Subset provincial results to TO wards
-# TODO: Aggregate provincial results into Census Tracts
-# TODO: Extract Electoral District names and numbers to replace approach from above
-
-library(sp)
-
-# Provincial election shapefiles are listed here: https://www.elections.on.ca/en/voting-in-ontario/electoral-district-shapefiles/limited-use-data-product-licence-agreement/download-shapefiles.html
-# POLL_DIV_1, POLL_DIV_3 are the poll division number (integer and three-character forms)
-# ED_ID, DATA_COMPI are the Electoral District number (integer and three-character forms)
-# KPI04 is the Electoral District _name_, as used on the WikiPedia election page
-
-base_shapefile_url <- "https://www.elections.on.ca/content/dam/NGW/sitecontent/2016/preo/shapefiles/"
-pd_shapefile <- "Polling%20Division%20Shapefile%20-%202014%20General%20Election.zip"
-
-# Download and extract the shapefiles
-this_shapefile <- paste0("data-raw/", pd_shapefile)
-if(file.exists(this_shapefile)) {
-  # Nothing to do
-}  else {
-  download.file(paste0(base_shapefile_url, pd_shapefile), destfile = this_shapefile)
-  unzip(this_shapefile, exdir="data-raw/prov_shapefile")
-}
-
-prov_geo <- sf::st_read("data-raw/prov_shapefile", layer = "PDs_Ontario") %>%
-  sf::st_transform(crs = "+init=epsg:4326")
-
-# Census tracts
-if(file.exists("data-raw/gct_000b11a_e.zip")) {
-  # Nothing to do
-}  else {
-  download.file("http://www12.statcan.gc.ca/census-recensement/2011/geo/bound-limit/files-fichiers/gct_000b11a_e.zip",
-                destfile = "data-raw/gct_000b11a_e.zip")
-  unzip("data-raw/gct_000b11a_e.zip", exdir="data-raw/gct")
-}
-census_tracts <- rgdal::readOGR(dsn = "data-raw/gct", layer = "gct_000b11a_e") %>%
-  sp::spTransform(sp::CRS('+init=epsg:4326'))
-
-http://opendata.toronto.ca/gcc/voting_location_2014_wgs84.zip
