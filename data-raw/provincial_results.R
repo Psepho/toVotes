@@ -1,6 +1,5 @@
 library(tidyverse)
 library(magrittr)
-library(sp)
 
 # Geocoding ---------------------------------------------------------------
 
