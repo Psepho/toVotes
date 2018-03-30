@@ -16,7 +16,7 @@ base_shapefile_url <- "https://www.elections.on.ca/content/dam/NGW/sitecontent/2
 pd_shapefile <- "Polling%20Division%20Shapefile%20-%202014%20General%20Election.zip"
 
 # Download and extract the provincial shapefile
-prov_shapefile <- paste0("data-raw/", prov_shapefile)
+prov_shapefile <- paste0("data-raw/", pd_shapefile)
 if(file.exists(prov_shapefile)) {
   # Nothing to do
 }  else {
