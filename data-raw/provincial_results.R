@@ -1,11 +1,10 @@
 library(tidyverse)
 library(magrittr)
 
-# Geocoding ---------------------------------------------------------------
-
 # TODO: Geocode provincial results
-# TODO: Subset provincial results to TO wards
 # TODO: Aggregate provincial results into Census Tracts
+
+# Geocoding ---------------------------------------------------------------
 
 # Provincial election shapefiles are listed here: https://www.elections.on.ca/en/voting-in-ontario/electoral-district-shapefiles/limited-use-data-product-licence-agreement/download-shapefiles.html
 # POLL_DIV_1, POLL_DIV_3 are the poll division number (integer and three-character forms)
@@ -25,6 +24,7 @@ if(file.exists(prov_shapefile)) {
 }
 prov_geo <- sf::st_read("data-raw/prov_shapefile", layer = "PDs_Ontario") %>%
   sf::st_transform(crs = "+init=epsg:4326")
+rm(base_shapefile_url, pd_shapefile, prov_shapefile)
 
 # Need electoral district names and numbers to match with party affiliations below
 electoral_districts <- prov_geo %>%
@@ -57,8 +57,6 @@ if(file.exists("data-raw/voting_location_2014_wgs84.zip")) {
 }
 toronto_wards <- sf::st_read("data-raw/voting_location_2014_wgs84", layer = "VOTING_LOCATION_2014_WGS84") %>%
   sf::st_transform(crs = "+init=epsg:4326")
-
-
 
 # Download raw data -------------------------------------------------------
 
@@ -148,3 +146,20 @@ poll_data_party_match_table <- poll_data %>%
 
 poll_data %<>%
   dplyr::left_join(poll_data_party_match_table)
+
+rm(poll_data_party_match_table, candidate_parties, candidates, candidate_tables, candidate_webpage,
+   raw_results_file, zip_file, file_pattern)
+
+# Spatial votes -----------------------------------------------------------
+
+# Filter provincial districts to Toronto wards
+to_prov_geo <- prov_geo[toronto_wards,]
+# Join poll_data with prov_geo
+to_prov_geo %<>%
+  dplyr::mutate(electoral_district = as.character(DATA_COMPI),
+                   electoral_district_name = stringr::str_to_title(KPI04)) %>%
+  dplyr::left_join(poll_data) %>%
+  dplyr::mutate(electoral_district_name = stringr::str_replace_all(utf8::as_utf8(electoral_district_name), "\u0097", " ")) %>%
+  dplyr::select(geometry, electoral_district, electoral_district_name, poll_number, candidate, votes, party)
+
+rm(toronto_wards)
