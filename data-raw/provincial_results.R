@@ -44,10 +44,21 @@ if(file.exists("data-raw/gct_000b11a_e.zip")) {
                 destfile = "data-raw/gct_000b11a_e.zip")
   unzip("data-raw/gct_000b11a_e.zip", exdir="data-raw/gct")
 }
-census_tracts <- rgdal::readOGR(dsn = "data-raw/gct", layer = "gct_000b11a_e") %>%
-  sp::spTransform(sp::CRS('+init=epsg:4326'))
+census_tracts <- sf::st_read("data-raw/gct", layer = "gct_000b11a_e") %>%
+  sf::st_transform(crs = "+init=epsg:4326")
 
-http://opendata.toronto.ca/gcc/voting_location_2014_wgs84.zip
+# Toronto wards
+if(file.exists("data-raw/voting_location_2014_wgs84.zip")) {
+  # Nothing to do
+}  else {
+  download.file("http://opendata.toronto.ca/gcc/voting_location_2014_wgs84.zip",
+                destfile = "data-raw/voting_location_2014_wgs84.zip")
+  unzip("data-raw/voting_location_2014_wgs84.zip", exdir="data-raw/voting_location_2014_wgs84")
+}
+toronto_wards <- sf::st_read("data-raw/voting_location_2014_wgs84", layer = "VOTING_LOCATION_2014_WGS84") %>%
+  sf::st_transform(crs = "+init=epsg:4326")
+
+
 
 # Download raw data -------------------------------------------------------
 

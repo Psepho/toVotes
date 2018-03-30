@@ -11,3 +11,4 @@ data-raw/*.zip
 data-raw/to_wards
 data-raw/gct
 data-raw/prov_shapefile
+data-raw/voting_location*
