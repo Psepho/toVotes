@@ -69,15 +69,15 @@ if(file.exists(zip_file)) { # Only download the data once
   download.file(raw_results_file,
                 destfile = zip_file)
   unzip(zip_file, exdir="data-raw") # Extract the data into data-raw
-  file.rename("data-raw/GE Results - 2014 (unconverted)", "data-raw/pollresults")
+  file.rename("data-raw/GE Results - 2014 EN", "data-raw/pollresults")
 }
 
 # Extract votes -----------------------------------------------------------
 
-file_pattern <- "*_[[:digit:]]{3}.xls" # Can use this to filter down to specific files
+file_pattern <- "*_[[:digit:]]{3} FINAL.xls" # Can use this to filter down to specific files
 poll_data <- list.files(path = "data-raw/pollresults", pattern = file_pattern, full.names = TRUE) %>% # Find all files that match the pattern
   purrr::set_names() %>%
-  purrr::map_df(readxl::read_excel, sheet = 1, col_types = "text", .id = "file") %>%   # Import each file and merge into a dataframe
+  purrr::map_df(readxl::read_excel, skip= 1, sheet = 1, col_types = "text", .id = "file") %>%   # Import each file and merge into a dataframe
   # Specifying sheet = 1 just to be clear we're ignoring the rest of the sheets
   # Declare col_types since there are duplicate surnames and map_df can't recast column types in the rbind
   # For example, Bell is in both district 014 and 063
