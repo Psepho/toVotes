@@ -1,7 +1,6 @@
-library(tidyverse)
 library(magrittr)
+library(tidyverse)
 
-# TODO: Geocode provincial results
 # TODO: Aggregate provincial results into Census Tracts
 
 # Geocoding ---------------------------------------------------------------
@@ -151,15 +150,30 @@ rm(poll_data_party_match_table, candidate_parties, candidates, candidate_tables,
    raw_results_file, zip_file, file_pattern)
 
 # Spatial votes -----------------------------------------------------------
-
-# Filter provincial districts to Toronto wards
-to_prov_geo <- prov_geo[toronto_wards,]
 # Join poll_data with prov_geo
-to_prov_geo %<>%
-  dplyr::mutate(electoral_district = as.character(DATA_COMPI),
-                   electoral_district_name = stringr::str_to_title(KPI04)) %>%
-  dplyr::left_join(poll_data) %>%
-  dplyr::mutate(electoral_district_name = stringr::str_replace_all(utf8::as_utf8(electoral_district_name), "\u0097", " ")) %>%
-  dplyr::select(geometry, electoral_district, electoral_district_name, poll_number, candidate, votes, party)
+# Subset to Toronto first
 
-rm(toronto_wards)
+spread_poll_data<- poll_data %>%
+  dplyr::group_by(electoral_district_name, electoral_district, poll_number, party) %>%
+  dplyr::summarize(votes = sum(votes)) %>%
+  tidyr::spread(party, votes)
+
+to_prov_geo <- prov_geo %>%
+  sf::st_intersection(toronto_wards) %>%
+  dplyr::mutate(electoral_district = as.character(DATA_COMPI),
+                electoral_district_name = stringr::str_to_title(KPI04),
+                poll_number = POLL_DIV_3) %>%
+  dplyr::mutate(electoral_district_name = stringr::str_replace_all(utf8::as_utf8(electoral_district_name), "\u0097", " ")) %>%
+  dplyr::select(geometry, electoral_district, electoral_district_name, poll_number) %>%
+  dplyr::left_join(spread_poll_data)
+
+# FIXME: to_prov_geo lost the sf assignment
+
+to_census_tracts <- census_tracts %>%
+  sf::st_intersection(toronto_wards)
+
+tmp <- sf::st_interpolate_aw(to_prov_geo, to_census_tracts)
+
+ggplot() + geom_sf(data = to_prov_geo, aes(fill = Liberal))
+
+devtools::use_data(prov_geo, overwrite = TRUE)
