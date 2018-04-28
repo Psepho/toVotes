@@ -165,14 +165,13 @@ to_prov_geo <- prov_geo %>%
                 poll_number = POLL_DIV_3) %>%
   dplyr::mutate(electoral_district_name = stringr::str_replace_all(utf8::as_utf8(electoral_district_name), "\u0097", " ")) %>%
   dplyr::select(geometry, electoral_district, electoral_district_name, poll_number) %>%
-  dplyr::left_join(spread_poll_data)
-
-# FIXME: to_prov_geo lost the sf assignment
+  dplyr::left_join(spread_poll_data) %>%
+  sf::st_as_sf()
 
 to_census_tracts <- census_tracts %>%
   sf::st_intersection(toronto_wards)
 
-tmp <- sf::st_interpolate_aw(to_prov_geo, to_census_tracts)
+tmp <- sf::st_interpolate_aw(to_prov_geo, to_census_tracts, sum)
 
 ggplot() + geom_sf(data = to_prov_geo, aes(fill = Liberal))
 
